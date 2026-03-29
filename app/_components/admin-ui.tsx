@@ -193,10 +193,13 @@ export function StatCard({ label, value, meta, tone = "#0f172a", background = "r
         display: "grid",
         gap: 8,
         backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.64) 0%, rgba(255,255,255,0) 100%)",
+        borderTop: `3px solid ${tone}`,
+        minHeight: 112,
+        overflow: "hidden",
       }}
     >
       <div style={{ fontSize: 11, color: "var(--admin-muted-strong)", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: tone, lineHeight: 1.05, letterSpacing: "-0.02em" }}>{value}</div>
+      <div style={{ fontSize: 21, fontWeight: 800, color: tone, lineHeight: 1.05, letterSpacing: "-0.02em" }}>{value}</div>
       {meta ? <div style={{ fontSize: 12, color: "var(--admin-muted)", lineHeight: 1.45 }}>{meta}</div> : null}
     </div>
   );

@@ -69,12 +69,12 @@ const WORKSPACE_NAV_ITEMS: Array<{
   label: string;
   description: string;
 }> = [
-  { key: "overview", label: "Overview", description: "状态总览与快捷入口" },
-  { key: "sources", label: "Sources", description: "RSS 源、预设和自定义" },
-  { key: "thresholds", label: "Thresholds", description: "市场阈值与解释层" },
-  { key: "rules", label: "Rules", description: "信号规则与操作台" },
-  { key: "activity", label: "Activity", description: "最近操作与审计痕迹" },
-  { key: "settings", label: "Settings", description: "展示上限与全局参数" },
+  { key: "overview", label: "Overview", description: "系统健康与入口" },
+  { key: "sources", label: "Sources", description: "来源池与启用结构" },
+  { key: "thresholds", label: "Thresholds", description: "阈值预设与编辑器" },
+  { key: "rules", label: "Rules", description: "规则编排与批量动作" },
+  { key: "activity", label: "Activity", description: "操作痕迹与审计" },
+  { key: "settings", label: "Settings", description: "展示参数与偏好" },
 ];
 const WORKSPACE_PATHS: Record<Workspace, string> = {
   overview: "/overview",
