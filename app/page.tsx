@@ -21,6 +21,22 @@ type DashboardSettings = {
   newsLimit: number;
 };
 
+type ThresholdCategory = "stock" | "currency" | "futures" | "crypto" | "macro";
+
+type ThresholdDirection = "above" | "below";
+
+type ThresholdItem = {
+  symbol: string;
+  name: string;
+  category: ThresholdCategory;
+  currentValue: number;
+  thresholdValue: number;
+  direction: ThresholdDirection;
+  unit: string;
+  note: string;
+  updatedAt: string;
+};
+
 type RefreshSummary = {
   newsCount?: number;
   signalCount?: number;
@@ -47,6 +63,20 @@ const LAST_REFRESH_SUMMARY_KEY = "investment-admin:last-refresh-summary";
 const RULE_RISK_FILTER_STORAGE_KEY = "investment-admin:rule-risk-filter";
 const RULE_COLLAPSED_STORAGE_KEY = "investment-admin:rule-collapsed-state";
 const ACTIVITY_LOG_STORAGE_KEY = "investment-admin:activity-log";
+const THRESHOLD_SEARCH_STORAGE_KEY = "investment-admin:threshold-search";
+
+const THRESHOLD_CATEGORY_LABELS: Record<ThresholdCategory, string> = {
+  stock: "股票",
+  currency: "货币",
+  futures: "期货",
+  crypto: "加密货币",
+  macro: "宏观",
+};
+
+const THRESHOLD_DIRECTION_LABELS: Record<ThresholdDirection, string> = {
+  above: "上破阈值",
+  below: "下破阈值",
+};
 
 const SOURCE_PRESETS: SourcePreset[] = [
   { group: "china", section: "china-news", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
@@ -74,6 +104,18 @@ const PRESET_SECTIONS = {
   global: SOURCE_PRESETS.filter((preset) => preset.section === "global"),
 };
 
+const DEFAULT_THRESHOLD_FORM: ThresholdItem = {
+  symbol: "",
+  name: "",
+  category: "stock",
+  currentValue: 0,
+  thresholdValue: 0,
+  direction: "above",
+  unit: "USD",
+  note: "",
+  updatedAt: "",
+};
+
 function getSourceLabel(url: string) {
   const preset = SOURCE_PRESETS.find((item) => item.url === url);
   if (preset) {
@@ -85,6 +127,34 @@ function getSourceLabel(url: string) {
   } catch {
     return url;
   }
+}
+
+function getThresholdStatus(item: ThresholdItem) {
+  const isTriggered = item.direction === "above" ? item.currentValue >= item.thresholdValue : item.currentValue <= item.thresholdValue;
+  const distance = item.direction === "above"
+    ? item.currentValue - item.thresholdValue
+    : item.thresholdValue - item.currentValue;
+  const percent = item.thresholdValue === 0 ? 0 : (distance / Math.abs(item.thresholdValue)) * 100;
+
+  return {
+    isTriggered,
+    distance,
+    percent,
+    tone: isTriggered ? "#166534" : "#475569",
+    background: isTriggered ? "rgba(34,197,94,0.12)" : "rgba(15,23,42,0.06)",
+    label: isTriggered ? "已触发" : "观察中",
+  };
+}
+
+function formatThresholdNumber(value: number) {
+  if (!Number.isFinite(value)) {
+    return "0";
+  }
+
+  return new Intl.NumberFormat("zh-CN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
+  }).format(value);
 }
 
 function getRuleRiskMeta(direction: Rule["direction"]) {
@@ -264,12 +334,36 @@ function writeStoredActivityLog(entries: ActivityEntry[]) {
   window.localStorage.setItem(ACTIVITY_LOG_STORAGE_KEY, JSON.stringify(entries.slice(0, 12)));
 }
 
+function readStoredThresholdSearch() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.localStorage.getItem(THRESHOLD_SEARCH_STORAGE_KEY) || "";
+}
+
+function writeStoredThresholdSearch(value: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (!value.trim()) {
+    window.localStorage.removeItem(THRESHOLD_SEARCH_STORAGE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(THRESHOLD_SEARCH_STORAGE_KEY, value);
+}
+
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
+  const [thresholds, setThresholds] = useState<ThresholdItem[]>([]);
   const [settings, setSettings] = useState<DashboardSettings>({ newsLimit: 200 });
   const [newSource, setNewSource] = useState("");
   const [sourceSearch, setSourceSearch] = useState("");
+  const [thresholdSearch, setThresholdSearch] = useState("");
+  const [newThreshold, setNewThreshold] = useState<ThresholdItem>(DEFAULT_THRESHOLD_FORM);
   const [ruleSearch, setRuleSearch] = useState("");
   const [ruleRiskFilter, setRuleRiskFilter] = useState<RuleRiskFilter>("all");
   const [collapsedRuleGroups, setCollapsedRuleGroups] = useState<Record<Exclude<RuleRiskFilter, "all">, boolean>>({
@@ -290,23 +384,26 @@ export default function AdminPage() {
 
   const loadConfig = useCallback(async () => {
     try {
-      const [sResp, rResp, settingsResp] = await Promise.all([
+      const [sResp, rResp, tResp, settingsResp] = await Promise.all([
         fetch(`${config.apiUrl}/admin/sources`, { headers: { Authorization: `Basic ${auth}` } }),
         fetch(`${config.apiUrl}/admin/rules`, { headers: { Authorization: `Basic ${auth}` } }),
+        fetch(`${config.apiUrl}/admin/thresholds`, { headers: { Authorization: `Basic ${auth}` } }),
         fetch(`${config.apiUrl}/admin/settings`, { headers: { Authorization: `Basic ${auth}` } }),
       ]);
 
-      if (!sResp.ok || !rResp.ok || !settingsResp.ok) {
+      if (!sResp.ok || !rResp.ok || !tResp.ok || !settingsResp.ok) {
         setMessage("请确认投资 API 管理端已启动，并使用正确的用户名密码 (admin/password)。");
         return;
       }
 
       const sJson = await sResp.json();
       const rJson = await rResp.json();
+      const tJson = await tResp.json();
       const settingsJson = await settingsResp.json();
 
       setSources(sJson.sources || []);
       setRules(rJson.rules || []);
+      setThresholds(tJson.thresholds || []);
       if ([50, 100, 200].includes(Number(settingsJson?.settings?.newsLimit))) {
         setSettings({ newsLimit: Number(settingsJson.settings.newsLimit) });
       }
@@ -315,15 +412,15 @@ export default function AdminPage() {
       writeStoredTimestamp(LAST_SYNC_STORAGE_KEY, syncedAt);
       setActivityLog((current) => {
         const next = [
-          {
-            id: `${syncedAt}-sync`,
-            title: "配置同步成功",
-            detail: `来源 ${sJson.sources?.length || 0} · 规则 ${rJson.rules?.length || 0} · 展示上限 ${settingsJson?.settings?.newsLimit ?? 200}`,
-            level: "success" as ActivityLevel,
-            at: syncedAt,
-          },
-          ...current,
-        ].slice(0, 12);
+        {
+          id: `${syncedAt}-sync`,
+          title: "配置同步成功",
+          detail: `来源 ${sJson.sources?.length || 0} · 规则 ${rJson.rules?.length || 0} · 阈值 ${tJson.thresholds?.length || 0} · 展示上限 ${settingsJson?.settings?.newsLimit ?? 200}`,
+          level: "success" as ActivityLevel,
+          at: syncedAt,
+        },
+        ...current,
+      ].slice(0, 12);
         writeStoredActivityLog(next);
         return next;
       });
@@ -340,6 +437,7 @@ export default function AdminPage() {
     setLastConfigSyncAt(readStoredTimestamp(LAST_SYNC_STORAGE_KEY));
     setLastRefreshSummary(readStoredRefreshSummary());
     setActivityLog(readStoredActivityLog());
+    setThresholdSearch(readStoredThresholdSearch());
     loadConfig();
   }, [loadConfig]);
 
@@ -358,6 +456,10 @@ export default function AdminPage() {
   useEffect(() => {
     writeStoredActivityLog(activityLog);
   }, [activityLog]);
+
+  useEffect(() => {
+    writeStoredThresholdSearch(thresholdSearch);
+  }, [thresholdSearch]);
 
   async function requestAdmin(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
     try {
@@ -462,6 +564,50 @@ export default function AdminPage() {
       appendActivity({
         title: "删除规则",
         detail: keyword,
+        level: "warning",
+      });
+    }
+  }
+
+  async function addThreshold() {
+    if (!newThreshold.symbol.trim() || !newThreshold.name.trim()) {
+      setMessage("阈值配置至少需要 symbol 和 name。");
+      return;
+    }
+
+    const payload = {
+      ...newThreshold,
+      symbol: newThreshold.symbol.trim().toUpperCase(),
+      name: newThreshold.name.trim(),
+      unit: newThreshold.unit.trim() || "USD",
+      note: newThreshold.note.trim(),
+      currentValue: Number(newThreshold.currentValue),
+      thresholdValue: Number(newThreshold.thresholdValue),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const res = await requestAdmin("/admin/thresholds", "POST", payload);
+    const updated = res.thresholds as ThresholdItem[] | undefined;
+    if (updated) {
+      setThresholds(updated);
+      setNewThreshold(DEFAULT_THRESHOLD_FORM);
+      appendActivity({
+        title: "保存阈值",
+        detail: `${payload.symbol} · ${payload.category} · ${payload.currentValue} / ${payload.thresholdValue}`,
+        level: "success",
+      });
+      setMessage(`阈值 ${payload.symbol} 已保存`);
+    }
+  }
+
+  async function removeThreshold(symbol: string, category?: string) {
+    const res = await requestAdmin("/admin/thresholds", "DELETE", { symbol, category });
+    const updated = res.thresholds as ThresholdItem[] | undefined;
+    if (updated) {
+      setThresholds(updated);
+      appendActivity({
+        title: "删除阈值",
+        detail: category ? `${symbol} · ${category}` : symbol,
         level: "warning",
       });
     }
@@ -615,6 +761,7 @@ export default function AdminPage() {
   const globalEnabled = DEFAULT_SOURCE_GROUPS.global.filter((preset) => sources.includes(preset.url));
   const customSources = sources.filter((url) => !SOURCE_PRESETS.some((preset) => preset.url === url));
   const sourceSearchTerm = sourceSearch.trim().toLowerCase();
+  const thresholdSearchTerm = thresholdSearch.trim().toLowerCase();
   const filteredSources = sources.filter((source) => {
     if (!sourceSearchTerm) {
       return true;
@@ -622,6 +769,19 @@ export default function AdminPage() {
 
     return `${getSourceLabel(source)} ${source}`.toLowerCase().includes(sourceSearchTerm);
   });
+  const filteredThresholds = thresholds.filter((item) => {
+    if (!thresholdSearchTerm) {
+      return true;
+    }
+
+    const haystack = `${item.symbol} ${item.name} ${item.category} ${item.note} ${item.direction} ${item.unit}`.toLowerCase();
+    return haystack.includes(thresholdSearchTerm);
+  });
+  const thresholdTriggeredCount = thresholds.filter((item) => getThresholdStatus(item).isTriggered).length;
+  const thresholdDirectionCounts = {
+    above: thresholds.filter((item) => item.direction === "above").length,
+    below: thresholds.filter((item) => item.direction === "below").length,
+  };
   const ruleSearchTerm = ruleSearch.trim().toLowerCase();
   const filteredRules = rules.filter((rule) => {
     if (ruleRiskFilter !== "all" && rule.direction !== ruleRiskFilter) {
@@ -795,7 +955,7 @@ export default function AdminPage() {
       >
         {[
           { label: "最近刷新", value: lastRefreshLabel, meta: lastRefreshDetail },
-          { label: "配置同步", value: lastSyncLabel, meta: `${sources.length} sources · ${rules.length} rules` },
+          { label: "配置同步", value: lastSyncLabel, meta: `${sources.length} sources · ${rules.length} rules · ${thresholds.length} thresholds` },
           { label: "默认源覆盖", value: `${chinaEnabled.length + globalEnabled.length}/${totalPresetSources}`, meta: `中国 ${chinaEnabled.length} · 国际 ${globalEnabled.length}` },
           {
             label: "最近操作",
@@ -925,6 +1085,303 @@ export default function AdminPage() {
         />
         <span>{message || "配置已就绪，继续调整来源或新闻展示上限。"}</span>
       </div>
+
+      <section
+        style={{
+          padding: 16,
+          borderRadius: 18,
+          border: "1px solid rgba(15,23,42,0.08)",
+          backgroundColor: "rgba(255,255,255,0.82)",
+          boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>市场阈值</div>
+            <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
+              股票、货币、期货等阈值与当前值统一在这里管理
+            </div>
+          </div>
+          <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
+            <div style={{ fontSize: 12, color: "#64748b" }}>
+              {thresholds.length} items · 已触发 {thresholdTriggeredCount}
+            </div>
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>
+              上破 {thresholdDirectionCounts.above} · 下破 {thresholdDirectionCounts.below}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.95fr) minmax(0, 1.05fr)", gap: 14 }}>
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 16,
+              border: "1px solid rgba(15,23,42,0.06)",
+              backgroundColor: "rgba(248,250,252,0.92)",
+              display: "grid",
+              gap: 10,
+              alignContent: "start",
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>快速录入 / 更新</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+              <input
+                value={newThreshold.symbol}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, symbol: e.target.value }))}
+                placeholder="Symbol"
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <input
+                value={newThreshold.name}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, name: e.target.value }))}
+                placeholder="Name"
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <select
+                value={newThreshold.category}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, category: e.target.value as ThresholdCategory }))}
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              >
+                {Object.entries(THRESHOLD_CATEGORY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={newThreshold.direction}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, direction: e.target.value as ThresholdDirection }))}
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              >
+                <option value="above">上破阈值</option>
+                <option value="below">下破阈值</option>
+              </select>
+              <input
+                value={newThreshold.currentValue}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, currentValue: Number(e.target.value) }))}
+                type="number"
+                step="any"
+                placeholder="Current"
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <input
+                value={newThreshold.thresholdValue}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, thresholdValue: Number(e.target.value) }))}
+                type="number"
+                step="any"
+                placeholder="Threshold"
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <input
+                value={newThreshold.unit}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, unit: e.target.value }))}
+                placeholder="Unit"
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <button
+                type="button"
+                onClick={addThreshold}
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#0f172a",
+                  color: "#fff",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                保存阈值
+              </button>
+            </div>
+            <textarea
+              value={newThreshold.note}
+              onChange={(e) => setNewThreshold((current) => ({ ...current, note: e.target.value }))}
+              placeholder="说明 / 解释信号为何重要"
+              rows={3}
+              style={{
+                width: "100%",
+                resize: "vertical",
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: "1px solid rgba(15,23,42,0.12)",
+                backgroundColor: "#fff",
+                fontFamily: "inherit",
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 16,
+              border: "1px solid rgba(15,23,42,0.06)",
+              backgroundColor: "#fff",
+              display: "grid",
+              gap: 10,
+              minHeight: 0,
+            }}
+          >
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+              <input
+                value={thresholdSearch}
+                onChange={(e) => setThresholdSearch(e.target.value)}
+                placeholder="搜索 symbol / name / note / category"
+                style={{
+                  flex: "1 1 260px",
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                  fontSize: 12,
+                }}
+              />
+              <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" }}>
+                {filteredThresholds.length}/{thresholds.length}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, maxHeight: 320, overflowY: "auto", paddingRight: 2 }}>
+              {filteredThresholds.map((item) => {
+                const status = getThresholdStatus(item);
+                const color =
+                  item.category === "stock"
+                    ? "#0f172a"
+                    : item.category === "currency"
+                      ? "#1d4ed8"
+                      : item.category === "futures"
+                        ? "#7c3aed"
+                        : item.category === "crypto"
+                          ? "#b45309"
+                          : "#475569";
+
+                return (
+                  <div
+                    key={`${item.category}-${item.symbol}`}
+                    style={{
+                      padding: 12,
+                      borderRadius: 14,
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      backgroundColor: status.background,
+                      display: "grid",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <span style={{ fontWeight: 800, color: "#0f172a" }}>{item.symbol}</span>
+                          <span style={{ fontSize: 11, color }}>{item.name}</span>
+                        </div>
+                        <div style={{ marginTop: 3, fontSize: 11, color: "#64748b" }}>
+                          {THRESHOLD_CATEGORY_LABELS[item.category]} · {THRESHOLD_DIRECTION_LABELS[item.direction]}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeThreshold(item.symbol, item.category)}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: "#ef4444",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        删除
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 12 }}>
+                      <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                        {formatThresholdNumber(item.currentValue)} / {formatThresholdNumber(item.thresholdValue)} {item.unit}
+                      </span>
+                      <span
+                        style={{
+                          padding: "3px 8px",
+                          borderRadius: 999,
+                          backgroundColor: status.background,
+                          color: status.tone,
+                          fontSize: 10,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {status.label}
+                      </span>
+                      <span style={{ color: "#64748b" }}>
+                        {status.distance >= 0 ? "+" : ""}
+                        {formatThresholdNumber(status.distance)} ({status.percent.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.45 }}>{item.note}</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8" }}>更新于 {formatRelativeTime(Date.parse(item.updatedAt))}</div>
+                  </div>
+                );
+              })}
+              {filteredThresholds.length === 0 && (
+                <div
+                  style={{
+                    padding: 14,
+                    borderRadius: 14,
+                    border: "1px dashed rgba(15,23,42,0.12)",
+                    backgroundColor: "rgba(248,250,252,0.8)",
+                    color: "#64748b",
+                    fontSize: 12,
+                  }}
+                >
+                  {thresholds.length === 0 ? "暂无阈值，先保存一条股票、货币或期货阈值。" : "没有匹配的阈值。"}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", gap: 16, flex: 1 }}>
         <section

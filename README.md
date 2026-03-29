@@ -7,6 +7,7 @@
 - 📡 **RSS 数据源管理** - 添加/删除新闻 RSS 源，API 会同时聚合多个来源
 - 🧩 **默认分组快捷添加** - 一键启用中国/国际默认来源
 - 📊 **信号规则配置** - 创建/编辑/删除投资信号生成规则
+- 📈 **市场阈值管理** - 维护股票、货币、期货等当前值和阈值，提升信号可解释性
 - 🔄 **实时刷新** - 手动触发新闻和信号数据刷新
 - 🔐 **安全认证** - Basic Auth 保护管理接口
 - 🔗 **双向导航** - 与 Dashboard 页面互跳
@@ -83,6 +84,9 @@ NEXT_PUBLIC_ADMIN_PASS=password
 - `GET /admin/rules` - 获取信号规则
 - `POST /admin/rules` - 添加/更新规则
 - `DELETE /admin/rules` - 删除规则
+- `GET /admin/thresholds` - 获取市场阈值
+- `POST /admin/thresholds` - 添加/更新阈值
+- `DELETE /admin/thresholds` - 删除阈值
 - `POST /admin/refresh` - 刷新数据
 
 ### 推荐来源
