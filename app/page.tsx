@@ -28,6 +28,16 @@ type RefreshSummary = {
 
 type RuleRiskFilter = "all" | "bullish" | "bearish" | "neutral";
 
+type ActivityLevel = "info" | "success" | "warning" | "error";
+
+type ActivityEntry = {
+  id: string;
+  title: string;
+  detail: string;
+  level: ActivityLevel;
+  at: number;
+};
+
 const RULE_RISK_ORDER: RuleRiskFilter[] = ["bullish", "bearish", "neutral"];
 
 const NEWS_LIMIT_OPTIONS = [50, 100, 200] as const;
@@ -36,6 +46,7 @@ const LAST_SYNC_STORAGE_KEY = "investment-admin:last-config-sync-at";
 const LAST_REFRESH_SUMMARY_KEY = "investment-admin:last-refresh-summary";
 const RULE_RISK_FILTER_STORAGE_KEY = "investment-admin:rule-risk-filter";
 const RULE_COLLAPSED_STORAGE_KEY = "investment-admin:rule-collapsed-state";
+const ACTIVITY_LOG_STORAGE_KEY = "investment-admin:activity-log";
 
 const SOURCE_PRESETS: SourcePreset[] = [
   { group: "china", section: "china-news", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
@@ -227,6 +238,32 @@ function writeStoredCollapsedRuleGroups(value: Record<Exclude<RuleRiskFilter, "a
   window.localStorage.setItem(RULE_COLLAPSED_STORAGE_KEY, JSON.stringify(value));
 }
 
+function readStoredActivityLog() {
+  if (typeof window === "undefined") {
+    return [] as ActivityEntry[];
+  }
+
+  const raw = window.localStorage.getItem(ACTIVITY_LOG_STORAGE_KEY);
+  if (!raw) {
+    return [] as ActivityEntry[];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as ActivityEntry[];
+    return Array.isArray(parsed) ? parsed.slice(0, 12) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredActivityLog(entries: ActivityEntry[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(ACTIVITY_LOG_STORAGE_KEY, JSON.stringify(entries.slice(0, 12)));
+}
+
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
@@ -247,6 +284,7 @@ export default function AdminPage() {
   const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
   const [lastConfigSyncAt, setLastConfigSyncAt] = useState<number | null>(null);
   const [lastRefreshSummary, setLastRefreshSummary] = useState<RefreshSummary | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
 
   const auth = btoa(`${process.env.NEXT_PUBLIC_ADMIN_USER || "admin"}:${process.env.NEXT_PUBLIC_ADMIN_PASS || "password"}`);
 
@@ -275,6 +313,20 @@ export default function AdminPage() {
       const syncedAt = Date.now();
       setLastConfigSyncAt(syncedAt);
       writeStoredTimestamp(LAST_SYNC_STORAGE_KEY, syncedAt);
+      setActivityLog((current) => {
+        const next = [
+          {
+            id: `${syncedAt}-sync`,
+            title: "配置同步成功",
+            detail: `来源 ${sJson.sources?.length || 0} · 规则 ${rJson.rules?.length || 0} · 展示上限 ${settingsJson?.settings?.newsLimit ?? 200}`,
+            level: "success" as ActivityLevel,
+            at: syncedAt,
+          },
+          ...current,
+        ].slice(0, 12);
+        writeStoredActivityLog(next);
+        return next;
+      });
       setMessage("配置加载成功");
     } catch (error) {
       setMessage(`加载失败：${error}`);
@@ -287,6 +339,7 @@ export default function AdminPage() {
     setLastRefreshAt(readStoredTimestamp(LAST_REFRESH_STORAGE_KEY));
     setLastConfigSyncAt(readStoredTimestamp(LAST_SYNC_STORAGE_KEY));
     setLastRefreshSummary(readStoredRefreshSummary());
+    setActivityLog(readStoredActivityLog());
     loadConfig();
   }, [loadConfig]);
 
@@ -301,6 +354,10 @@ export default function AdminPage() {
   useEffect(() => {
     writeStoredCollapsedRuleGroups(collapsedRuleGroups);
   }, [collapsedRuleGroups]);
+
+  useEffect(() => {
+    writeStoredActivityLog(activityLog);
+  }, [activityLog]);
 
   async function requestAdmin(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
     try {
@@ -329,7 +386,14 @@ export default function AdminPage() {
     if (!newSource.trim()) return;
     const res = await requestAdmin("/admin/sources", "POST", { url: newSource.trim() });
     const updated = res.sources as string[] | undefined;
-    if (updated) setSources(updated);
+    if (updated) {
+      setSources(updated);
+      appendActivity({
+        title: "新增来源",
+        detail: getSourceLabel(newSource.trim()),
+        level: "success",
+      });
+    }
     setNewSource("");
   }
 
@@ -337,7 +401,14 @@ export default function AdminPage() {
     if (sources.includes(url)) return;
     const res = await requestAdmin("/admin/sources", "POST", { url });
     const updated = res.sources as string[] | undefined;
-    if (updated) setSources(updated);
+    if (updated) {
+      setSources(updated);
+      appendActivity({
+        title: "启用默认来源",
+        detail: getSourceLabel(url),
+        level: "success",
+      });
+    }
   }
 
   async function addPresetGroup(group: keyof typeof DEFAULT_SOURCE_GROUPS) {
@@ -358,21 +429,42 @@ export default function AdminPage() {
   async function removeSource(url: string) {
     const res = await requestAdmin("/admin/sources", "DELETE", { url });
     const updated = res.sources as string[] | undefined;
-    if (updated) setSources(updated);
+    if (updated) {
+      setSources(updated);
+      appendActivity({
+        title: "移除来源",
+        detail: getSourceLabel(url),
+        level: "warning",
+      });
+    }
   }
 
   async function addRule() {
     if (!newRule.keyword.trim() || !newRule.asset.trim()) return;
     const res = await requestAdmin("/admin/rules", "POST", newRule);
     const updated = res.rules as Rule[] | undefined;
-    if (updated) setRules(updated);
+    if (updated) {
+      setRules(updated);
+      appendActivity({
+        title: "保存规则",
+        detail: `${newRule.keyword} · ${newRule.asset} · ${newRule.direction}`,
+        level: "success",
+      });
+    }
     setNewRule({ keyword: "", asset: "", direction: "neutral", reason: "" });
   }
 
   async function removeRule(keyword: string) {
     const res = await requestAdmin("/admin/rules", "DELETE", { keyword });
     const updated = res.rules as Rule[] | undefined;
-    if (updated) setRules(updated);
+    if (updated) {
+      setRules(updated);
+      appendActivity({
+        title: "删除规则",
+        detail: keyword,
+        level: "warning",
+      });
+    }
   }
 
   function toggleRuleSelection(keyword: string) {
@@ -412,6 +504,23 @@ export default function AdminPage() {
     setAllRuleGroupsCollapsed(false);
   }
 
+  function appendActivity(entry: Omit<ActivityEntry, "id" | "at">) {
+    const at = Date.now();
+    setActivityLog((current) => {
+      const next = [
+        {
+          ...entry,
+          id: `${at}-${entry.title}`,
+          at,
+        },
+        ...current,
+      ].slice(0, 12);
+
+      writeStoredActivityLog(next);
+      return next;
+    });
+  }
+
   function selectRuleGroup(visibleRules: Rule[]) {
     const visibleKeywords = visibleRules.map((rule) => rule.keyword);
     setSelectedRuleKeywords((current) => Array.from(new Set([...current, ...visibleKeywords])));
@@ -427,6 +536,11 @@ export default function AdminPage() {
       await removeRule(keyword);
     }
     setSelectedRuleKeywords((current) => current.filter((keyword) => !keywords.includes(keyword)));
+    appendActivity({
+      title: "批量删除规则",
+      detail: `${keywords.length} 条`,
+      level: "warning",
+    });
   }
 
   async function deleteSelectedRules() {
@@ -444,6 +558,11 @@ export default function AdminPage() {
       await removeRule(keyword);
     }
     setSelectedRuleKeywords([]);
+    appendActivity({
+      title: "批量删除已选规则",
+      detail: `${keywords.length} 条`,
+      level: "warning",
+    });
   }
 
   async function refreshNews() {
@@ -463,6 +582,11 @@ export default function AdminPage() {
     setLastRefreshSummary(summary);
     writeStoredTimestamp(LAST_REFRESH_STORAGE_KEY, refreshedAt);
     writeStoredRefreshSummary(summary);
+    appendActivity({
+      title: "刷新新闻与信号",
+      detail: `新闻 ${newsCount ?? 0} · 信号 ${signalCount ?? 0}`,
+      level: "success",
+    });
     setMessage(`刷新完成：新闻 ${newsCount ?? 0}，信号 ${signalCount ?? 0}`);
   }
 
@@ -478,6 +602,11 @@ export default function AdminPage() {
       const syncedAt = Date.now();
       setLastConfigSyncAt(syncedAt);
       writeStoredTimestamp(LAST_SYNC_STORAGE_KEY, syncedAt);
+      appendActivity({
+        title: "更新展示上限",
+        detail: `${updated.newsLimit} 条`,
+        level: "info",
+      });
       setMessage(`展示上限已更新为 ${updated.newsLimit}`);
     }
   }
@@ -660,7 +789,7 @@ export default function AdminPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
           gap: 12,
         }}
       >
@@ -668,6 +797,11 @@ export default function AdminPage() {
           { label: "最近刷新", value: lastRefreshLabel, meta: lastRefreshDetail },
           { label: "配置同步", value: lastSyncLabel, meta: `${sources.length} sources · ${rules.length} rules` },
           { label: "默认源覆盖", value: `${chinaEnabled.length + globalEnabled.length}/${totalPresetSources}`, meta: `中国 ${chinaEnabled.length} · 国际 ${globalEnabled.length}` },
+          {
+            label: "最近操作",
+            value: activityLog[0] ? activityLog[0].title : "暂无",
+            meta: activityLog[0] ? activityLog[0].detail : "等待一次操作记录",
+          },
         ].map((item) => (
           <div
             key={item.label}
@@ -1125,7 +1259,7 @@ export default function AdminPage() {
                     当前风险筛选、搜索与批量选择都在这里统一收口。
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     type="button"
                     onClick={() => setAllRuleGroupsCollapsed(true)}
@@ -1188,6 +1322,87 @@ export default function AdminPage() {
                     重置视图
                   </button>
                 </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 10,
+                  padding: 14,
+                  borderRadius: 18,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "rgba(255,255,255,0.95)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>最近操作</div>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                      最近 {Math.min(5, activityLog.length)} 条，帮助你快速回看最新变更。
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{activityLog.length} total</div>
+                </div>
+
+                {activityLog.length === 0 ? (
+                  <div
+                    style={{
+                      padding: 14,
+                      borderRadius: 14,
+                      border: "1px dashed rgba(15,23,42,0.12)",
+                      backgroundColor: "rgba(248,250,252,0.8)",
+                      color: "#64748b",
+                      fontSize: 12,
+                    }}
+                  >
+                    暂无操作记录，执行一次刷新、增删来源或编辑规则后，这里会自动记录。
+                  </div>
+                ) : (
+                  activityLog.slice(0, 5).map((entry) => {
+                    const levelStyle =
+                      entry.level === "success"
+                        ? { color: "#166534", backgroundColor: "rgba(34,197,94,0.12)" }
+                        : entry.level === "warning"
+                          ? { color: "#b45309", backgroundColor: "rgba(245,158,11,0.12)" }
+                          : entry.level === "error"
+                            ? { color: "#b91c1c", backgroundColor: "rgba(239,68,68,0.12)" }
+                            : { color: "#1d4ed8", backgroundColor: "rgba(59,130,246,0.12)" };
+
+                    return (
+                      <div
+                        key={entry.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          alignItems: "flex-start",
+                          padding: "10px 12px",
+                          borderRadius: 14,
+                          border: "1px solid rgba(15,23,42,0.08)",
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                            <span
+                              style={{
+                                padding: "3px 8px",
+                                borderRadius: 999,
+                                fontSize: 10,
+                                fontWeight: 800,
+                                ...levelStyle,
+                              }}
+                            >
+                              {entry.title}
+                            </span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{entry.detail}</span>
+                          </div>
+                          <div style={{ marginTop: 4, fontSize: 11, color: "#94a3b8" }}>{formatRelativeTime(entry.at)}</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               {groupedFilteredRules.length === 0 ? (
