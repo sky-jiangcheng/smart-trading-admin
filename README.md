@@ -47,18 +47,30 @@ npm start
 
 ## 配置说明
 
-### API 连接
+### 环境变量
 
-默认连接到 `http://localhost:3001` 的 investment-api 服务。
+创建 `.env.local` 文件来配置以下环境变量：
 
-### 认证信息
+```bash
+# Dashboard URL
+NEXT_PUBLIC_DASHBOARD_URL=https://smart-trading-dashboard-gules.vercel.app
 
-- 默认用户名: `admin`
-- 默认密码: `password`
+# API 基础 URL
+NEXT_PUBLIC_API_URL=http://localhost:3001
 
-可通过环境变量覆盖：
-- `NEXT_PUBLIC_ADMIN_USER`
-- `NEXT_PUBLIC_ADMIN_PASS`
+# 管理认证信息
+NEXT_PUBLIC_ADMIN_USER=admin
+NEXT_PUBLIC_ADMIN_PASS=password
+```
+
+如果不设置，将使用默认值。
+
+### 默认配置
+
+- **Dashboard URL**: `https://smart-trading-dashboard-gules.vercel.app`
+- **API URL**: `http://localhost:3001`
+- **Admin 用户**: `admin`
+- **Admin 密码**: `password`
 
 ## API 接口
 

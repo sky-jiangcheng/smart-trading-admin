@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { config } from "../lib/config";
 
 type Rule = {
   keyword: string;
@@ -108,7 +109,7 @@ export default function AdminPage() {
       <h1>管理台</h1>
       <button
         style={{ marginBottom: 16, padding: "6px 12px", borderRadius: 6, border: "1px solid #999" }}
-        onClick={() => (window.location.href = "http://localhost:3000")}
+        onClick={() => (window.location.href = config.dashboardUrl)}
       >
         返回 Dashboard
       </button>
