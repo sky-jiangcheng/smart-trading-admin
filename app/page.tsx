@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { config } from "../lib/config";
+import { EmptyState, SectionHeader, StatCard } from "./_components/admin-ui";
 
 type Rule = {
   keyword: string;
@@ -1361,22 +1362,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             meta: activityLog[0] ? activityLog[0].detail : "等待一次操作记录",
           },
         ].map((item) => (
-          <div
-            key={item.label}
-            style={{
-              padding: 16,
-              borderRadius: 18,
-              border: "1px solid rgba(15,23,42,0.08)",
-              backgroundColor: "rgba(255,255,255,0.8)",
-              boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
-              display: "grid",
-              gap: 6,
-            }}
-          >
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", lineHeight: 1.05 }}>{item.value}</div>
-            <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>{item.meta}</div>
-          </div>
+          <StatCard key={item.label} label={item.label} value={item.value} meta={item.meta} />
         ))}
       </div>
 
@@ -1393,19 +1379,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           { label: "国际默认", value: globalEnabled.length },
           { label: "自定义", value: customSources.length },
         ].map((item) => (
-          <div
-            key={item.label}
-            style={{
-              padding: 16,
-              borderRadius: 18,
-              border: "1px solid rgba(15,23,42,0.08)",
-              backgroundColor: "rgba(255,255,255,0.78)",
-              boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
-            }}
-          >
-            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>{item.label}</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>{item.value}</div>
-          </div>
+          <StatCard key={item.label} label={item.label} value={item.value} background="rgba(255,255,255,0.78)" />
         ))}
       </div>
 
@@ -1498,34 +1472,33 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             gap: 12,
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>最近变更</div>
-              <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>最近 4 条操作记录</div>
-            </div>
-            <Link
-              href={WORKSPACE_PATHS.activity}
-              onClick={() => setActiveWorkspace("activity")}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 12,
-                border: "1px solid rgba(15,23,42,0.08)",
-                backgroundColor: "#fff",
-                color: "#0f172a",
-                fontWeight: 700,
-                cursor: "pointer",
-                textDecoration: "none",
-              }}
-            >
-              查看全部
-            </Link>
-          </div>
+          <SectionHeader
+            eyebrow="最近变更"
+            title="最近 4 条操作记录"
+            description="最新动作会先出现在这里，方便你快速判断系统状态。"
+            action={
+              <Link
+                href={WORKSPACE_PATHS.activity}
+                onClick={() => setActiveWorkspace("activity")}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#fff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  textDecoration: "none",
+                }}
+              >
+                查看全部
+              </Link>
+            }
+          />
 
           <div style={{ display: "grid", gap: 10 }}>
             {recentActivity.length === 0 ? (
-              <div style={{ padding: 14, borderRadius: 14, border: "1px dashed rgba(15,23,42,0.12)", backgroundColor: "rgba(248,250,252,0.8)", color: "#64748b", fontSize: 12 }}>
-                暂无操作记录，完成一次配置同步后会出现在这里。
-              </div>
+              <EmptyState title="暂无操作记录" description="完成一次配置同步后会出现在这里。" />
             ) : (
               recentActivity.map((entry) => (
                 <div key={entry.id} style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
@@ -1635,22 +1608,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           gap: 14,
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>市场阈值</div>
-            <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
-              股票、货币、期货等阈值与当前值统一在这里管理
-            </div>
-          </div>
-          <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
-            <div style={{ fontSize: 12, color: "#64748b" }}>
-              {thresholds.length} items · 已触发 {thresholdTriggeredCount}
-            </div>
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>
-              上破 {thresholdDirectionCounts.above} · 下破 {thresholdDirectionCounts.below}
-            </div>
-          </div>
-        </div>
+        <SectionHeader
+          eyebrow="市场阈值"
+          title="股票、货币、期货等阈值与当前值统一管理"
+          description={`${thresholds.length} items · 已触发 ${thresholdTriggeredCount} · 上破 ${thresholdDirectionCounts.above} · 下破 ${thresholdDirectionCounts.below}`}
+        />
 
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.95fr) minmax(0, 1.05fr)", gap: 14 }}>
           <div
@@ -1985,18 +1947,10 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 );
               })}
               {filteredThresholds.length === 0 && (
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 14,
-                    border: "1px dashed rgba(15,23,42,0.12)",
-                    backgroundColor: "rgba(248,250,252,0.8)",
-                    color: "#64748b",
-                    fontSize: 12,
-                  }}
-                >
-                  {thresholds.length === 0 ? "暂无阈值，先保存一条股票、货币或期货阈值。" : "没有匹配的阈值。"}
-                </div>
+                <EmptyState
+                  title={thresholds.length === 0 ? "暂无阈值" : "没有匹配的阈值"}
+                  description={thresholds.length === 0 ? "先保存一条股票、货币或期货阈值。" : "调整搜索条件后再试。"}
+                />
               )}
             </div>
           </div>
@@ -2015,20 +1969,15 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           gap: 14,
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>Activity</h2>
-            <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-              最近操作与变更历史，单独保留便于审计和回看。
-            </div>
-          </div>
-          <div style={{ fontSize: 12, color: "#64748b" }}>{activityLog.length} total</div>
-        </div>
+        <SectionHeader
+          eyebrow="Activity"
+          title="最近操作与变更历史"
+          description="单独保留便于审计、回看和回溯问题。"
+          action={<div style={{ fontSize: 12, color: "#64748b" }}>{activityLog.length} total</div>}
+        />
 
         {activityLog.length === 0 ? (
-          <div style={{ padding: 14, borderRadius: 14, border: "1px dashed rgba(15,23,42,0.12)", backgroundColor: "rgba(248,250,252,0.8)", color: "#64748b", fontSize: 12 }}>
-            暂无操作记录。
-          </div>
+          <EmptyState title="暂无操作记录" description="现在还没有可回看的配置变更。" />
         ) : (
           <div style={{ display: "grid", gap: 10 }}>
             {activityLog.map((entry) => {
@@ -2072,14 +2021,12 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             backdropFilter: "blur(16px)",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>RSS 数据源</h2>
-              <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                已启用的多个 RSS 源会由 API 同时聚合成一个新闻流，支持搜索、分组和快捷启用。
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <SectionHeader
+            eyebrow="RSS 数据源"
+            title="已启用的多个 RSS 源会由 API 同时聚合成一个新闻流"
+            description="支持搜索、分组和快捷启用。"
+            action={
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
                 onClick={() => addPresetGroup("china")}
                 style={{
@@ -2108,8 +2055,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               >
                 一键启用国际默认源
               </button>
-            </div>
-          </div>
+              </div>
+            }
+          />
 
           <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
             <div style={{ display: "grid", gap: 8 }}>
@@ -2165,9 +2113,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   );
                 })}
                 {filteredSources.length === 0 && sources.length > 0 && (
-                  <div style={{ color: "#64748b", fontSize: 12 }}>没有匹配的来源。</div>
+                  <EmptyState title="没有匹配的来源" description="可以尝试清空搜索，或者切换到其他工作区添加来源。" />
                 )}
-                {sources.length === 0 && <div style={{ color: "#64748b", fontSize: 12 }}>暂无来源，先启用默认组或手动添加。</div>}
+                {sources.length === 0 && <EmptyState title="暂无来源" description="先启用默认组或手动添加一个 RSS 源。" />}
               </div>
             </div>
 
