@@ -13,14 +13,22 @@ type Rule = {
 type SourcePreset = {
   label: string;
   url: string;
+  group: "global" | "china";
 };
 
 const SOURCE_PRESETS: SourcePreset[] = [
-  { label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
-  { label: "人民网 - 时政", url: "http://www.people.com.cn/rss/politics.xml" },
-  { label: "中国日报 - 中国新闻", url: "http://www.chinadaily.com.cn/rss/china_rss.xml" },
-  { label: "36氪 - 最新快讯", url: "https://www.36kr.com/feed-newsflash" },
+  { group: "china", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
+  { group: "china", label: "人民网 - 时政", url: "http://www.people.com.cn/rss/politics.xml" },
+  { group: "china", label: "中国日报 - 中国新闻", url: "http://www.chinadaily.com.cn/rss/china_rss.xml" },
+  { group: "china", label: "36氪 - 最新快讯", url: "https://www.36kr.com/feed-newsflash" },
+  { group: "global", label: "CNBC - Top Stories", url: "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
+  { group: "global", label: "MarketWatch - Top Stories", url: "https://feeds.marketwatch.com/marketwatch/topstories/" },
 ];
+
+const DEFAULT_SOURCE_GROUPS = {
+  china: SOURCE_PRESETS.filter((preset) => preset.group === "china"),
+  global: SOURCE_PRESETS.filter((preset) => preset.group === "global"),
+};
 
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
@@ -89,11 +97,26 @@ export default function AdminPage() {
     setNewSource("");
   }
 
-  async function addPresetSource(url: string) {
+  async function addPresetSourceByUrl(url: string) {
     if (sources.includes(url)) return;
     const res = await requestAdmin("/admin/sources", "POST", { url });
     const updated = res.sources as string[] | undefined;
     if (updated) setSources(updated);
+  }
+
+  async function addPresetGroup(group: keyof typeof DEFAULT_SOURCE_GROUPS) {
+    const presets = DEFAULT_SOURCE_GROUPS[group];
+    const missing = presets.filter((preset) => !sources.includes(preset.url));
+
+    if (missing.length === 0) {
+      setMessage(`${group === "china" ? "中国" : "全球"}默认来源已全部启用`);
+      return;
+    }
+
+    for (const preset of missing) {
+      // Sequential writes keep the saved source list stable even when the API persists immediately.
+      await addPresetSourceByUrl(preset.url);
+    }
   }
 
   async function removeSource(url: string) {
@@ -135,10 +158,21 @@ export default function AdminPage() {
       <div style={{ marginBottom: 12, color: "#333" }}>{message}</div>
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
         <section style={{ flex: 1, minWidth: 280 }}>
-          <h2>RSS 数据源</h2>
+          <h2 style={{ marginBottom: 6 }}>RSS 数据源</h2>
           <p style={{ marginTop: 0, color: "#666", fontSize: 13, lineHeight: 1.5 }}>
             已启用的多个 RSS 源会由 API 同时聚合成一个新闻流，不再只取单一来源。
           </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            <button onClick={() => addPresetGroup("china")} style={{ padding: "6px 10px" }}>
+              一键启用中国默认源
+            </button>
+            <button onClick={() => addPresetGroup("global")} style={{ padding: "6px 10px" }}>
+              一键启用国际默认源
+            </button>
+          </div>
+          <div style={{ marginBottom: 10, fontSize: 12, color: "#666" }}>
+            当前已启用 {sources.length} 个来源
+          </div>
           <ul>
             {sources.map((source) => (
               <li key={source} style={{ marginBottom: 6 }}>
@@ -156,33 +190,64 @@ export default function AdminPage() {
             style={{ width: "100%", padding: 6, marginBottom: 6 }}
           />
           <button onClick={addSource}>添加数据源</button>
-          <div style={{ marginTop: 16 }}>
-            <div style={{ marginBottom: 8, fontSize: 13, color: "#333", fontWeight: 600 }}>推荐中国来源</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {SOURCE_PRESETS.map((preset) => {
-                const alreadyAdded = sources.includes(preset.url);
+          <div style={{ marginTop: 16, display: "grid", gap: 16 }}>
+            <div>
+              <div style={{ marginBottom: 8, fontSize: 13, color: "#333", fontWeight: 600 }}>推荐中国来源</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {DEFAULT_SOURCE_GROUPS.china.map((preset) => {
+                  const alreadyAdded = sources.includes(preset.url);
 
-                return (
-                  <button
-                    key={preset.url}
-                    type="button"
-                    disabled={alreadyAdded}
-                    onClick={() => addPresetSource(preset.url)}
-                    style={{
-                      textAlign: "left",
-                      padding: "8px 10px",
-                      borderRadius: 6,
-                      border: "1px solid #ccc",
-                      backgroundColor: alreadyAdded ? "#f3f3f3" : "#fff",
-                      color: alreadyAdded ? "#888" : "#111",
-                      cursor: alreadyAdded ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>{preset.label}</div>
-                    <div style={{ fontSize: 12, marginTop: 2, wordBreak: "break-all" }}>{preset.url}</div>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={preset.url}
+                      type="button"
+                      disabled={alreadyAdded}
+                    onClick={() => addPresetSourceByUrl(preset.url)}
+                      style={{
+                        textAlign: "left",
+                        padding: "8px 10px",
+                        borderRadius: 6,
+                        border: "1px solid #ccc",
+                        backgroundColor: alreadyAdded ? "#f3f3f3" : "#fff",
+                        color: alreadyAdded ? "#888" : "#111",
+                        cursor: alreadyAdded ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{preset.label}</div>
+                      <div style={{ fontSize: 12, marginTop: 2, wordBreak: "break-all" }}>{preset.url}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <div style={{ marginBottom: 8, fontSize: 13, color: "#333", fontWeight: 600 }}>推荐国际来源</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {DEFAULT_SOURCE_GROUPS.global.map((preset) => {
+                  const alreadyAdded = sources.includes(preset.url);
+
+                  return (
+                    <button
+                      key={preset.url}
+                      type="button"
+                      disabled={alreadyAdded}
+                    onClick={() => addPresetSourceByUrl(preset.url)}
+                      style={{
+                        textAlign: "left",
+                        padding: "8px 10px",
+                        borderRadius: 6,
+                        border: "1px solid #ccc",
+                        backgroundColor: alreadyAdded ? "#f3f3f3" : "#fff",
+                        color: alreadyAdded ? "#888" : "#111",
+                        cursor: alreadyAdded ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{preset.label}</div>
+                      <div style={{ fontSize: 12, marginTop: 2, wordBreak: "break-all" }}>{preset.url}</div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
