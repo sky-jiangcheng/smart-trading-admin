@@ -1574,6 +1574,108 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
       <section
         style={{
           display: isOverviewWorkspace ? "grid" : "none",
+          gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 0.8fr)",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 18,
+            border: "1px solid rgba(15,23,42,0.08)",
+            backgroundColor: "rgba(255,255,255,0.82)",
+            boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>建议动作</div>
+              <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>先把工作区切换到最需要你注意的地方</div>
+            </div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>按操作频率排序</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+            {[
+              { key: "thresholds" as Workspace, label: "Thresholds", meta: "查看阈值预设和触发压力", href: WORKSPACE_PATHS.thresholds, tone: "#1d4ed8" },
+              { key: "sources" as Workspace, label: "Sources", meta: "检查来源池与启用结构", href: WORKSPACE_PATHS.sources, tone: "#0f766e" },
+              { key: "rules" as Workspace, label: "Rules", meta: "整理规则组并处理批量动作", href: WORKSPACE_PATHS.rules, tone: "#b45309" },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setActiveWorkspace(item.key)}
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  padding: 14,
+                  borderRadius: 16,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%)",
+                  textDecoration: "none",
+                  boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                  <div style={{ fontWeight: 800, color: "#0f172a" }}>{item.label}</div>
+                  <div style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: item.tone, boxShadow: `0 0 0 4px ${item.tone}22` }} />
+                </div>
+                <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.45 }}>{item.meta}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 18,
+            border: "1px solid rgba(15,23,42,0.08)",
+            backgroundColor: "rgba(255,255,255,0.82)",
+            boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>工作区图谱</div>
+              <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>保持壳层统一，避免视觉断裂</div>
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {WORKSPACE_NAV_ITEMS.map((item) => (
+              <div
+                key={item.key}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  alignItems: "center",
+                  padding: "10px 12px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(15,23,42,0.06)",
+                  backgroundColor: "rgba(248,250,252,0.85)",
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{item.label}</div>
+                  <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>{item.description}</div>
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: activeWorkspace === item.key ? "#1d4ed8" : "#94a3b8", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  {activeWorkspace === item.key ? "Active" : "Idle"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        style={{
+          display: isOverviewWorkspace ? "grid" : "none",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
           gap: 12,
         }}
@@ -2360,7 +2462,14 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         </div>
       </section>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", gap: 16, flex: 1 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr)",
+          gap: 16,
+          flex: 1,
+        }}
+      >
       <section
         style={{
           display: isSourcesWorkspace ? "grid" : "none",
