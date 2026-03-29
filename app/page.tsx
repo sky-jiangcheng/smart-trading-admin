@@ -265,6 +265,52 @@ const THRESHOLD_DIRECTION_LABELS: Record<ThresholdDirection, string> = {
   below: "下破阈值",
 };
 
+const RULE_QUICK_PRESETS: Array<{
+  label: string;
+  keyword: string;
+  asset: string;
+  direction: Rule["direction"];
+  reason: string;
+}> = [
+  {
+    label: "Rate Pressure",
+    keyword: "rate",
+    asset: "NASDAQ",
+    direction: "bearish",
+    reason: "收益率上行压缩高估值资产，常用于宏观与成长股联动判断。",
+  },
+  {
+    label: "Inflation Hedge",
+    keyword: "inflation",
+    asset: "GC",
+    direction: "bullish",
+    reason: "通胀和实际利率变化通常会强化黄金与避险资产的关注度。",
+  },
+  {
+    label: "Oil Shock",
+    keyword: "oil",
+    asset: "CL",
+    direction: "bullish",
+    reason: "原油波动会快速传导到通胀预期、能源链和风险偏好。",
+  },
+  {
+    label: "Earnings Reset",
+    keyword: "earnings",
+    asset: "SPX",
+    direction: "neutral",
+    reason: "财报季通常需要把估值、预期和指引变化放在一起看。",
+  },
+];
+
+const RULE_ASSET_PRESETS = ["SPX", "NASDAQ", "US10Y", "VIX", "DXY", "GC", "CL", "BTC"] as const;
+
+const RULE_REASON_TEMPLATES = [
+  "宏观变量变化会影响风险资产定价。",
+  "收益率和估值预期正在重新定价。",
+  "事件驱动可能带来短期波动放大。",
+  "资金流和情绪正在发生明显偏转。",
+] as const;
+
 const SOURCE_PRESETS: SourcePreset[] = [
   { group: "china", section: "china-news", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
   { group: "china", section: "china-news", label: "人民网 - 时政", url: "http://www.people.com.cn/rss/politics.xml" },
@@ -304,6 +350,13 @@ const DEFAULT_THRESHOLD_FORM: ThresholdItem = {
   priority: "P1",
   tags: [],
   updatedAt: "",
+};
+
+const DEFAULT_RULE_FORM: Rule = {
+  keyword: "",
+  asset: "",
+  direction: "neutral",
+  reason: "",
 };
 
 function getSourceLabel(url: string) {
@@ -572,7 +625,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
     neutral: false,
   });
   const [selectedRuleKeywords, setSelectedRuleKeywords] = useState<string[]>([]);
-  const [newRule, setNewRule] = useState<Rule>({ keyword: "", asset: "", direction: "neutral", reason: "" });
+  const [newRule, setNewRule] = useState<Rule>(DEFAULT_RULE_FORM);
   const [message, setMessage] = useState("");
   const [isRefreshingNews, setIsRefreshingNews] = useState(false);
   const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
@@ -765,6 +818,20 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
       });
     }
     setNewRule({ keyword: "", asset: "", direction: "neutral", reason: "" });
+  }
+
+  function fillRulePreset(preset: (typeof RULE_QUICK_PRESETS)[number]) {
+    setNewRule({
+      keyword: preset.keyword,
+      asset: preset.asset,
+      direction: preset.direction,
+      reason: preset.reason,
+    });
+    setMessage(`已载入规则预设：${preset.label}`);
+  }
+
+  function applyRuleAsset(asset: string) {
+    setNewRule((current) => ({ ...current, asset }));
   }
 
   async function removeRule(keyword: string) {
@@ -1482,6 +1549,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           display: isOverviewWorkspace ? "grid" : "none",
           gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr)",
           gap: 16,
+          alignItems: "start",
         }}
       >
         <div
@@ -1493,6 +1561,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
             display: "grid",
             gap: 12,
+            alignSelf: "start",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -1538,6 +1607,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
             display: "grid",
             gap: 12,
+            alignSelf: "start",
           }}
         >
           <SectionHeader
@@ -2773,10 +2843,10 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           display: isRulesWorkspace ? "flex" : "none",
           minWidth: 0,
           border: "1px solid rgba(15,23,42,0.08)",
-          borderRadius: 24,
+          borderRadius: 22,
           background: "rgba(255,255,255,0.82)",
-          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
-          padding: 18,
+          boxShadow: "0 18px 42px rgba(15,23,42,0.07)",
+          padding: 14,
           backdropFilter: "blur(16px)",
           flexDirection: "column",
           minHeight: 0,
@@ -2799,7 +2869,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             }
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginTop: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8, marginTop: 12 }}>
             {[
               { key: "all", label: "全部规则", value: rules.length, tone: "#0f172a", background: "rgba(15,23,42,0.06)" },
               { key: "bullish", label: "高关注", value: ruleRiskCounts.bullish, tone: "#166534", background: "rgba(34,197,94,0.12)" },
@@ -2814,18 +2884,18 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   onClick={() => setRuleRiskFilter(item.key as RuleRiskFilter)}
                   style={{
                     textAlign: "left",
-                    padding: 14,
-                    borderRadius: 18,
+                    padding: 12,
+                    borderRadius: 16,
                     border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
                     backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
-                    boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
+                    boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
                     cursor: "pointer",
                     display: "grid",
-                    gap: 6,
+                    gap: 4,
                   }}
                 >
-                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
-                  <div style={{ fontSize: 24, lineHeight: 1.05, fontWeight: 800, color: item.tone }}>{item.value}</div>
+                  <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                  <div style={{ fontSize: 22, lineHeight: 1.05, fontWeight: 800, color: item.tone }}>{item.value}</div>
                   <div
                     style={{
                       display: "inline-flex",
@@ -2843,18 +2913,53 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     {active ? "当前筛选" : "点击筛选"}
                   </div>
                 </button>
-              );
-            })}
+                );
+              })}
           </div>
 
-          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0, 1.16fr) minmax(320px, 0.84fr)", gap: 12, flex: 1, minHeight: 0, alignItems: "start" }}>
+          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>规则预设</div>
+              <div style={{ fontSize: 11, color: "#64748b" }}>先载入模板，再微调 keyword / asset / reason</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
+              {RULE_QUICK_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => fillRulePreset(preset)}
+                  style={{
+                    textAlign: "left",
+                    padding: 12,
+                    borderRadius: 14,
+                    border: "1px solid rgba(15,23,42,0.08)",
+                    backgroundColor: "#fff",
+                    boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
+                    cursor: "pointer",
+                    display: "grid",
+                    gap: 5,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{preset.label}</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", backgroundColor: "rgba(15,23,42,0.05)", padding: "3px 7px", borderRadius: 999 }}>模板</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.45 }}>
+                    {preset.keyword} · {preset.asset} · {preset.direction}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "minmax(0, 1.22fr) minmax(304px, 0.78fr)", gap: 12, flex: 1, minHeight: 0, alignItems: "start" }}>
             <div style={{ display: "grid", gap: 12, minHeight: 0 }}>
               <div
                 style={{
                   display: "grid",
                   gap: 10,
-                  padding: 14,
-                  borderRadius: 18,
+                  padding: 12,
+                  borderRadius: 16,
                   backgroundColor: "rgba(248,250,252,0.9)",
                   border: "1px solid rgba(15,23,42,0.06)",
                 }}
@@ -2866,12 +2971,12 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   placeholder="搜索规则 keyword / asset / reason"
                   style={{
                     flex: "1 1 260px",
-                    minWidth: 0,
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(15,23,42,0.12)",
-                    backgroundColor: "#fff",
-                    fontSize: 12,
+                        minWidth: 0,
+                        padding: "9px 11px",
+                        borderRadius: 11,
+                        border: "1px solid rgba(15,23,42,0.12)",
+                        backgroundColor: "#fff",
+                        fontSize: 12,
                   }}
                 />
                 <button
@@ -2879,8 +2984,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   onClick={() => toggleSelectVisibleRules(filteredRules)}
                   disabled={filteredRules.length === 0}
                   style={{
-                    padding: "10px 12px",
-                    borderRadius: 12,
+                    padding: "9px 11px",
+                    borderRadius: 11,
                     border: "1px solid rgba(15,23,42,0.08)",
                     backgroundColor: "#fff",
                     color: "#0f172a",
@@ -2895,8 +3000,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   onClick={deleteSelectedRules}
                   disabled={selectedRuleKeywords.length === 0}
                   style={{
-                    padding: "10px 12px",
-                    borderRadius: 12,
+                    padding: "9px 11px",
+                    borderRadius: 11,
                     border: "1px solid rgba(239,68,68,0.18)",
                     backgroundColor: selectedRuleKeywords.length === 0 ? "rgba(248,250,252,0.9)" : "rgba(239,68,68,0.1)",
                     color: selectedRuleKeywords.length === 0 ? "#94a3b8" : "#b91c1c",
@@ -2921,25 +3026,25 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   justifyContent: "space-between",
                   gap: 12,
                   flexWrap: "wrap",
-                  padding: "10px 12px",
-                  borderRadius: 14,
+                  padding: "9px 11px",
+                  borderRadius: 12,
                   border: "1px solid rgba(15,23,42,0.08)",
                   backgroundColor: "rgba(255,255,255,0.9)",
                 }}
               >
                 <div style={{ display: "grid", gap: 2 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>运营操作条</div>
-                  <div style={{ fontSize: 11, color: "#64748b" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>运营操作条</div>
+                  <div style={{ fontSize: 10, color: "#64748b" }}>
                     当前风险筛选、搜索与批量选择都在这里统一收口。
                   </div>
                 </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     type="button"
                     onClick={() => setAllRuleGroupsCollapsed(true)}
                     style={{
-                      padding: "8px 10px",
-                      borderRadius: 12,
+                      padding: "7px 10px",
+                      borderRadius: 11,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: "#fff",
                       color: "#0f172a",
@@ -2953,8 +3058,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     type="button"
                     onClick={() => setAllRuleGroupsCollapsed(false)}
                     style={{
-                      padding: "8px 10px",
-                      borderRadius: 12,
+                      padding: "7px 10px",
+                      borderRadius: 11,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: "#fff",
                       color: "#0f172a",
@@ -2969,8 +3074,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     onClick={() => setSelectedRuleKeywords([])}
                     disabled={selectedRuleKeywords.length === 0}
                     style={{
-                      padding: "8px 10px",
-                      borderRadius: 12,
+                      padding: "7px 10px",
+                      borderRadius: 11,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: selectedRuleKeywords.length === 0 ? "rgba(248,250,252,0.9)" : "#fff",
                       color: selectedRuleKeywords.length === 0 ? "#94a3b8" : "#0f172a",
@@ -2984,8 +3089,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     type="button"
                     onClick={resetRuleView}
                     style={{
-                      padding: "8px 10px",
-                      borderRadius: 12,
+                      padding: "7px 10px",
+                      borderRadius: 11,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: "#0f172a",
                       color: "#fff",
@@ -3188,9 +3293,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             <div
               style={{
                 display: "grid",
-                gap: 10,
-                padding: 14,
-                borderRadius: 18,
+                gap: 9,
+                padding: 12,
+                borderRadius: 16,
                 backgroundColor: "rgba(248,250,252,0.9)",
                 border: "1px solid rgba(15,23,42,0.06)",
                 position: "sticky",
@@ -3198,74 +3303,221 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 alignSelf: "start",
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>编辑规则</div>
-              <input
-                placeholder="keyword"
-                value={newRule.keyword}
-                onChange={(e) => setNewRule((prev) => ({ ...prev, keyword: e.target.value }))}
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>编辑规则</div>
+                  <div style={{ marginTop: 2, fontSize: 10, color: "#64748b" }}>先用模板，后微调字段，减少手工输入。</div>
+                </div>
+                <div
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: 999,
+                    backgroundColor: "rgba(15,23,42,0.06)",
+                    color: "#475569",
+                    fontSize: 10,
+                    fontWeight: 800,
+                  }}
+                >
+                  Draft
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>方向</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[
+                    { label: "高关注", value: "bullish" as Rule["direction"], tone: "#166534" },
+                    { label: "风险", value: "bearish" as Rule["direction"], tone: "#b91c1c" },
+                    { label: "观察", value: "neutral" as Rule["direction"], tone: "#92400e" },
+                  ].map((chip) => {
+                    const active = newRule.direction === chip.value;
+                    return (
+                      <button
+                        key={chip.label}
+                        type="button"
+                        onClick={() => setNewRule((prev) => ({ ...prev, direction: chip.value }))}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 11,
+                          border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                          backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                          color: chip.tone,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>常用资产</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {RULE_ASSET_PRESETS.map((asset) => {
+                    const active = newRule.asset === asset;
+                    return (
+                      <button
+                        key={asset}
+                        type="button"
+                        onClick={() => applyRuleAsset(asset)}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 999,
+                          border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                          backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                          color: active ? "#1d4ed8" : "#0f172a",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {asset}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                <label style={{ display: "grid", gap: 5 }}>
+                  <span style={{ fontSize: 10, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Keyword</span>
+                  <input
+                    placeholder="keyword"
+                    value={newRule.keyword}
+                    onChange={(e) => setNewRule((prev) => ({ ...prev, keyword: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "9px 11px",
+                      borderRadius: 11,
+                      border: "1px solid rgba(15,23,42,0.12)",
+                      backgroundColor: "#fff",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "grid", gap: 5 }}>
+                  <span style={{ fontSize: 10, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Asset</span>
+                  <input
+                    placeholder="asset"
+                    value={newRule.asset}
+                    onChange={(e) => setNewRule((prev) => ({ ...prev, asset: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "9px 11px",
+                      borderRadius: 11,
+                      border: "1px solid rgba(15,23,42,0.12)",
+                      backgroundColor: "#fff",
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>原因模板</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {RULE_REASON_TEMPLATES.map((template) => (
+                    <button
+                      key={template}
+                      type="button"
+                      onClick={() => setNewRule((prev) => ({ ...prev, reason: template }))}
+                      style={{
+                        padding: "7px 10px",
+                        borderRadius: 11,
+                        border: "1px solid rgba(15,23,42,0.08)",
+                        backgroundColor: "#fff",
+                        color: "#334155",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {template}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label style={{ display: "grid", gap: 5 }}>
+                <span style={{ fontSize: 10, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Reason</span>
+                <textarea
+                  placeholder="reason"
+                  value={newRule.reason}
+                  onChange={(e) => setNewRule((prev) => ({ ...prev, reason: e.target.value }))}
+                  rows={3}
+                  style={{
+                    width: "100%",
+                    resize: "vertical",
+                    padding: "9px 11px",
+                    borderRadius: 11,
+                    border: "1px solid rgba(15,23,42,0.12)",
+                    backgroundColor: "#fff",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </label>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                <button
+                  onClick={addRule}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 11,
+                    border: "1px solid rgba(15,23,42,0.08)",
+                    backgroundColor: "#0f172a",
+                    color: "#fff",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  保存规则
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewRule(DEFAULT_RULE_FORM)}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 11,
+                    border: "1px solid rgba(15,23,42,0.08)",
+                    backgroundColor: "#fff",
+                    color: "#0f172a",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  清空草稿
+                </button>
+              </div>
+
+              <div
                 style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.12)",
-                  backgroundColor: "#fff",
-                }}
-              />
-              <input
-                placeholder="asset"
-                value={newRule.asset}
-                onChange={(e) => setNewRule((prev) => ({ ...prev, asset: e.target.value }))}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.12)",
-                  backgroundColor: "#fff",
-                }}
-              />
-              <select
-                value={newRule.direction}
-                onChange={(e) => setNewRule((prev) => ({ ...prev, direction: e.target.value as Rule["direction"] }))}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.12)",
-                  backgroundColor: "#fff",
-                }}
-              >
-                <option value="bullish">bullish</option>
-                <option value="bearish">bearish</option>
-                <option value="neutral">neutral</option>
-              </select>
-              <input
-                placeholder="reason"
-                value={newRule.reason}
-                onChange={(e) => setNewRule((prev) => ({ ...prev, reason: e.target.value }))}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.12)",
-                  backgroundColor: "#fff",
-                }}
-              />
-              <button
-                onClick={addRule}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 12,
+                  padding: 12,
+                  borderRadius: 14,
                   border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "#0f172a",
-                  color: "#fff",
-                  fontWeight: 700,
-                  cursor: "pointer",
+                  backgroundColor: "rgba(255,255,255,0.9)",
+                  display: "grid",
+                  gap: 8,
                 }}
               >
-                添加 / 更新规则
-              </button>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>草稿预览</div>
+                  <div style={{ fontSize: 10, color: "#94a3b8" }}>{newRule.keyword && newRule.asset ? "可保存" : "至少需要 keyword 和 asset"}</div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontWeight: 800, color: "#0f172a" }}>{newRule.keyword || "keyword"}</span>
+                  <span style={{ fontSize: 11, color: "#64748b" }}>{newRule.asset || "asset"}</span>
+                  <span style={{ padding: "3px 8px", borderRadius: 999, backgroundColor: "rgba(15,23,42,0.06)", fontSize: 10, fontWeight: 800 }}>
+                    {newRule.direction}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5 }}>
+                  {newRule.reason || "用一句话说明这条规则为什么会触发，以及它该被谁关注。"}
+                </div>
+              </div>
             </div>
-            </div>
+          </div>
           </div>
         </section>
       </div>
