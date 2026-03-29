@@ -1341,7 +1341,7 @@ export default function AdminPage() {
 
       <section
         style={{
-          display: isThresholdsWorkspace || isOverviewWorkspace ? "grid" : "none",
+          display: isThresholdsWorkspace ? "grid" : "none",
           padding: 16,
           borderRadius: 18,
           border: "1px solid rgba(15,23,42,0.08)",
@@ -1721,7 +1721,7 @@ export default function AdminPage() {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", gap: 16, flex: 1 }}>
         <section
           style={{
-            display: isSourcesWorkspace || isOverviewWorkspace ? "grid" : "none",
+            display: isSourcesWorkspace ? "grid" : "none",
             minWidth: 0,
             border: "1px solid rgba(15,23,42,0.08)",
             borderRadius: 24,
@@ -1882,7 +1882,7 @@ export default function AdminPage() {
 
         <section
           style={{
-            display: isRulesWorkspace || isOverviewWorkspace ? "flex" : "none",
+            display: isRulesWorkspace ? "flex" : "none",
             minWidth: 0,
             border: "1px solid rgba(15,23,42,0.08)",
             borderRadius: 24,
