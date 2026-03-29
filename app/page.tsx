@@ -938,12 +938,7 @@ export default function AdminPage() {
               cursor: "pointer",
             }}
             onClick={() => {
-              const safeTarget =
-                config.dashboardUrl.includes("smart-trading-dashboard.vercel.app") &&
-                !config.dashboardUrl.includes("gules")
-                  ? "https://smart-trading-dashboard-gules.vercel.app"
-                  : config.dashboardUrl;
-              window.location.href = safeTarget;
+              window.location.href = config.dashboardUrl;
             }}
           >
             返回 Dashboard
