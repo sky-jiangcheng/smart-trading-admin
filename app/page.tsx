@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { config } from "../lib/config";
 
 type Rule = {
@@ -399,6 +400,10 @@ function writeStoredWorkspace(value: Workspace) {
   window.localStorage.setItem(WORKSPACE_STORAGE_KEY, value);
 }
 
+function isWorkspace(value: string | null): value is Workspace {
+  return value === "overview" || value === "sources" || value === "thresholds" || value === "rules";
+}
+
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
@@ -424,6 +429,9 @@ export default function AdminPage() {
   const [lastConfigSyncAt, setLastConfigSyncAt] = useState<number | null>(null);
   const [lastRefreshSummary, setLastRefreshSummary] = useState<RefreshSummary | null>(null);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const auth = btoa(`${process.env.NEXT_PUBLIC_ADMIN_USER || "admin"}:${process.env.NEXT_PUBLIC_ADMIN_PASS || "password"}`);
 
@@ -483,9 +491,18 @@ export default function AdminPage() {
     setLastRefreshSummary(readStoredRefreshSummary());
     setActivityLog(readStoredActivityLog());
     setThresholdSearch(readStoredThresholdSearch());
-    setActiveWorkspace(readStoredWorkspace());
     loadConfig();
   }, [loadConfig]);
+
+  useEffect(() => {
+    const workspace = searchParams.get("workspace");
+    if (isWorkspace(workspace)) {
+      setActiveWorkspace(workspace);
+      return;
+    }
+
+    setActiveWorkspace(readStoredWorkspace());
+  }, [searchParams]);
 
   useEffect(() => {
     setSelectedRuleKeywords((current) => current.filter((keyword) => rules.some((rule) => rule.keyword === keyword)));
@@ -510,6 +527,17 @@ export default function AdminPage() {
   useEffect(() => {
     writeStoredWorkspace(activeWorkspace);
   }, [activeWorkspace]);
+
+  useEffect(() => {
+    const currentWorkspace = searchParams.get("workspace");
+    if (currentWorkspace === activeWorkspace) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("workspace", activeWorkspace);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [activeWorkspace, pathname, router, searchParams]);
 
   async function requestAdmin(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
     try {
@@ -877,6 +905,10 @@ export default function AdminPage() {
   const isSourcesWorkspace = activeWorkspace === "sources";
   const isThresholdsWorkspace = activeWorkspace === "thresholds";
   const isRulesWorkspace = activeWorkspace === "rules";
+  const activeWorkspaceMeta = useMemo(
+    () => WORKSPACE_NAV_ITEMS.find((item) => item.key === activeWorkspace) ?? WORKSPACE_NAV_ITEMS[0],
+    [activeWorkspace],
+  );
 
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
@@ -1159,8 +1191,7 @@ export default function AdminPage() {
         <div style={{ display: "grid", gap: 2 }}>
           <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>当前工作区</div>
           <div style={{ fontSize: 14, color: "#0f172a", fontWeight: 800 }}>
-            {WORKSPACE_NAV_ITEMS.find((item) => item.key === activeWorkspace)?.label} ·{" "}
-            {WORKSPACE_NAV_ITEMS.find((item) => item.key === activeWorkspace)?.description}
+            {activeWorkspaceMeta.label} · {activeWorkspaceMeta.description}
           </div>
         </div>
         <div style={{ fontSize: 12, color: "#475569" }}>
