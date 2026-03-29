@@ -67,7 +67,7 @@ NEXT_PUBLIC_ADMIN_PASS=password
 
 ### 默认配置
 
-- **Dashboard URL**: `https://smart-trading-dashboard-gules.vercel.app`
+- **Dashboard URL**: `https://smart-trading-dashboard-gules.vercel.app`（admin 默认返回线上 dashboard）
 - **API URL**: `http://localhost:3001`
 - **Admin 用户**: `admin`
 - **Admin 密码**: `password`
