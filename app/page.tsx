@@ -902,13 +902,26 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
     [rules],
   );
   const recentActivity = useMemo(() => activityLog.slice(0, 4), [activityLog]);
-  const workspaceBreadcrumb = useMemo(
-    () => ["Admin", activeWorkspaceMeta.label].join(" / "),
-    [activeWorkspaceMeta.label],
-  );
   const apiHealthLabel = lastConfigSyncAt ? "Connected" : "Idle";
   const configSyncDurationLabel = lastConfigSyncDurationMs === null ? "暂无" : `${lastConfigSyncDurationMs} ms`;
   const refreshDurationLabel = lastRefreshDurationMs === null ? "暂无" : `${lastRefreshDurationMs} ms`;
+  const headerButtonBaseStyle = {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(15,23,42,0.08)",
+    fontWeight: 700,
+    cursor: "pointer",
+  } as const;
+  const headerPrimaryButtonStyle = {
+    ...headerButtonBaseStyle,
+    backgroundColor: "#0f172a",
+    color: "#fff",
+  } as const;
+  const headerSecondaryButtonStyle = {
+    ...headerButtonBaseStyle,
+    backgroundColor: "#fff",
+    color: "#0f172a",
+  } as const;
 
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
@@ -961,6 +974,50 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         </div>
       </div>
     );
+  }
+
+  function renderWorkspaceAction() {
+    switch (activeWorkspace) {
+      case "overview":
+        return (
+          <button
+            type="button"
+            onClick={refreshNews}
+            disabled={isRefreshingNews}
+            style={{
+              ...headerPrimaryButtonStyle,
+              minWidth: 168,
+              boxShadow: isRefreshingNews ? "none" : "0 8px 22px rgba(15,23,42,0.06)",
+              color: isRefreshingNews ? "#94a3b8" : "#fff",
+              cursor: isRefreshingNews ? "wait" : "pointer",
+            }}
+          >
+            {isRefreshingNews ? "刷新中..." : "刷新新闻 + 信号"}
+          </button>
+        );
+      case "rules":
+        return (
+          <button
+            type="button"
+            onClick={resetRuleView}
+            style={headerSecondaryButtonStyle}
+          >
+            重置规则视图
+          </button>
+        );
+      case "settings":
+        return (
+          <button
+            type="button"
+            onClick={() => updateNewsLimit(settings.newsLimit)}
+            style={headerSecondaryButtonStyle}
+          >
+            重新同步设置
+          </button>
+        );
+      default:
+        return null;
+    }
   }
 
   return (
@@ -1137,218 +1194,13 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             在这里管理多个 RSS 源、快速启用中外默认来源，并把新闻刷新为可直接消费的信号流。
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <a
-            href={config.dashboardUrl}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 14,
-              border: "1px solid rgba(15,23,42,0.08)",
-              backgroundColor: "#0f172a",
-              color: "#fff",
-              fontWeight: 700,
-              cursor: "pointer",
-              textDecoration: "none",
-            }}
-          >
-            返回 Dashboard
-          </a>
-          <button
-            type="button"
-            disabled={isRefreshingNews}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 14,
-              border: "1px solid rgba(15,23,42,0.08)",
-              backgroundColor: isRefreshingNews ? "rgba(15,23,42,0.06)" : "#ffffff",
-              color: isRefreshingNews ? "#64748b" : "#0f172a",
-              fontWeight: 700,
-              cursor: isRefreshingNews ? "wait" : "pointer",
-              minWidth: 168,
-              boxShadow: isRefreshingNews ? "none" : "0 8px 22px rgba(15,23,42,0.06)",
-            }}
-            onClick={refreshNews}
-          >
-            {isRefreshingNews ? "刷新中..." : "刷新新闻 + 信号"}
-          </button>
-        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>{renderWorkspaceAction()}</div>
       </header>
 
       <div
         style={{
-          padding: "12px 14px",
-          borderRadius: 16,
-          border: "1px solid rgba(15,23,42,0.08)",
-          backgroundColor: "rgba(255,255,255,0.8)",
-          boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "grid", gap: 2 }}>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>当前工作区</div>
-            <div style={{ fontSize: 14, color: "#0f172a", fontWeight: 800 }}>
-              {activeWorkspaceMeta.label} · {activeWorkspaceMeta.description}
-            </div>
-          </div>
-        <div style={{ fontSize: 12, color: "#475569" }}>
-          侧栏用于切换模块，主区只保留当前任务所需的信息密度。
-        </div>
-      </div>
-
-      <section
-        style={{
-          padding: 16,
-          borderRadius: 20,
-          border: "1px solid rgba(15,23,42,0.08)",
-          backgroundColor: "rgba(255,255,255,0.84)",
-          boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
-          display: "grid",
-          gap: 12,
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ display: "grid", gap: 3 }}>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{workspaceBreadcrumb}</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>{activeWorkspaceMeta.label}</div>
-            <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>{activeWorkspaceMeta.description}</div>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            {activeWorkspace === "overview" && (
-              <>
-                <button
-                  type="button"
-                  onClick={refreshNews}
-                  disabled={isRefreshingNews}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(15,23,42,0.08)",
-                    backgroundColor: "#0f172a",
-                    color: "#fff",
-                    fontWeight: 700,
-                    cursor: isRefreshingNews ? "wait" : "pointer",
-                  }}
-                >
-                  刷新新闻 + 信号
-                </button>
-                <Link
-                  href={WORKSPACE_PATHS.sources}
-                  onClick={() => setActiveWorkspace("sources")}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(15,23,42,0.08)",
-                    backgroundColor: "#fff",
-                    color: "#0f172a",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    textDecoration: "none",
-                  }}
-                >
-                  管理来源
-                </Link>
-              </>
-            )}
-            {activeWorkspace === "sources" && (
-              <Link
-                href={WORKSPACE_PATHS.settings}
-                onClick={() => setActiveWorkspace("settings")}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "#fff",
-                  color: "#0f172a",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textDecoration: "none",
-                }}
-              >
-                先调展示设置
-              </Link>
-            )}
-            {activeWorkspace === "thresholds" && (
-              <Link
-                href={WORKSPACE_PATHS.rules}
-                onClick={() => setActiveWorkspace("rules")}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "#fff",
-                  color: "#0f172a",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textDecoration: "none",
-                }}
-              >
-                去看规则
-              </Link>
-            )}
-            {activeWorkspace === "rules" && (
-              <button
-                type="button"
-                onClick={resetRuleView}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "#fff",
-                  color: "#0f172a",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                重置规则视图
-              </button>
-            )}
-            {activeWorkspace === "activity" && (
-              <Link
-                href={WORKSPACE_PATHS.overview}
-                onClick={() => setActiveWorkspace("overview")}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "#fff",
-                  color: "#0f172a",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textDecoration: "none",
-                }}
-              >
-                返回总览
-              </Link>
-            )}
-            {activeWorkspace === "settings" && (
-              <button
-                type="button"
-                onClick={() => updateNewsLimit(settings.newsLimit)}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "#fff",
-                  color: "#0f172a",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                重新同步设置
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <div
-        style={{
           display: isOverviewWorkspace ? "grid" : "none",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 12,
         }}
       >
@@ -1361,25 +1213,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             value: activityLog[0] ? activityLog[0].title : "暂无",
             meta: activityLog[0] ? activityLog[0].detail : "等待一次操作记录",
           },
+          { label: "总来源", value: sources.length, meta: `自定义 ${customSources.length}` },
+          { label: "中国默认", value: chinaEnabled.length, meta: "默认组" },
+          { label: "国际默认", value: globalEnabled.length, meta: "默认组" },
         ].map((item) => (
           <StatCard key={item.label} label={item.label} value={item.value} meta={item.meta} />
-        ))}
-      </div>
-
-      <div
-        style={{
-          display: isOverviewWorkspace ? "grid" : "none",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: 12,
-        }}
-      >
-        {[
-          { label: "总来源", value: sources.length },
-          { label: "中国默认", value: chinaEnabled.length },
-          { label: "国际默认", value: globalEnabled.length },
-          { label: "自定义", value: customSources.length },
-        ].map((item) => (
-          <StatCard key={item.label} label={item.label} value={item.value} background="rgba(255,255,255,0.78)" />
         ))}
       </div>
 
