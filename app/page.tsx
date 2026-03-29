@@ -70,6 +70,17 @@ function getSourceLabel(url: string) {
   }
 }
 
+function getRuleRiskMeta(direction: Rule["direction"]) {
+  switch (direction) {
+    case "bullish":
+      return { label: "高关注", tone: "#166534", background: "rgba(34,197,94,0.12)" };
+    case "bearish":
+      return { label: "风险", tone: "#b91c1c", background: "rgba(239,68,68,0.12)" };
+    default:
+      return { label: "观察", tone: "#92400e", background: "rgba(245,158,11,0.12)" };
+  }
+}
+
 function formatRelativeTime(timestamp: number | null) {
   if (!timestamp) {
     return "暂无记录";
@@ -153,6 +164,8 @@ export default function AdminPage() {
   const [settings, setSettings] = useState<DashboardSettings>({ newsLimit: 200 });
   const [newSource, setNewSource] = useState("");
   const [sourceSearch, setSourceSearch] = useState("");
+  const [ruleSearch, setRuleSearch] = useState("");
+  const [selectedRuleKeywords, setSelectedRuleKeywords] = useState<string[]>([]);
   const [newRule, setNewRule] = useState<Rule>({ keyword: "", asset: "", direction: "neutral", reason: "" });
   const [message, setMessage] = useState("");
   const [isRefreshingNews, setIsRefreshingNews] = useState(false);
@@ -199,6 +212,10 @@ export default function AdminPage() {
     setLastRefreshSummary(readStoredRefreshSummary());
     loadConfig();
   }, [loadConfig]);
+
+  useEffect(() => {
+    setSelectedRuleKeywords((current) => current.filter((keyword) => rules.some((rule) => rule.keyword === keyword)));
+  }, [rules]);
 
   async function requestAdmin(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
     try {
@@ -273,6 +290,36 @@ export default function AdminPage() {
     if (updated) setRules(updated);
   }
 
+  function toggleRuleSelection(keyword: string) {
+    setSelectedRuleKeywords((current) =>
+      current.includes(keyword) ? current.filter((item) => item !== keyword) : [...current, keyword],
+    );
+  }
+
+  function toggleSelectVisibleRules(visibleRules: Rule[]) {
+    const visibleKeywords = visibleRules.map((rule) => rule.keyword);
+    setSelectedRuleKeywords((current) => {
+      const visibleSelected = visibleKeywords.filter((keyword) => current.includes(keyword));
+      if (visibleSelected.length === visibleKeywords.length && visibleKeywords.length > 0) {
+        return current.filter((keyword) => !visibleKeywords.includes(keyword));
+      }
+
+      return Array.from(new Set([...current, ...visibleKeywords]));
+    });
+  }
+
+  async function deleteSelectedRules() {
+    if (selectedRuleKeywords.length === 0) {
+      return;
+    }
+
+    const keywords = [...selectedRuleKeywords];
+    for (const keyword of keywords) {
+      await removeRule(keyword);
+    }
+    setSelectedRuleKeywords([]);
+  }
+
   async function refreshNews() {
     setIsRefreshingNews(true);
     const res = await requestAdmin("/admin/refresh", "POST");
@@ -320,6 +367,16 @@ export default function AdminPage() {
 
     return `${getSourceLabel(source)} ${source}`.toLowerCase().includes(sourceSearchTerm);
   });
+  const ruleSearchTerm = ruleSearch.trim().toLowerCase();
+  const filteredRules = rules.filter((rule) => {
+    if (!ruleSearchTerm) {
+      return true;
+    }
+
+    const haystack = `${rule.keyword} ${rule.asset} ${rule.direction} ${rule.reason}`.toLowerCase();
+    return haystack.includes(ruleSearchTerm);
+  });
+  const selectedVisibleRuleCount = filteredRules.filter((rule) => selectedRuleKeywords.includes(rule.keyword)).length;
   const totalPresetSources = SOURCE_PRESETS.length;
   const lastRefreshLabel = formatRelativeTime(lastRefreshAt);
   const lastSyncLabel = formatRelativeTime(lastConfigSyncAt);
@@ -773,53 +830,84 @@ export default function AdminPage() {
             <div>
               <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>信号规则</h2>
               <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                规则会在刷新新闻后自动触发，可按 keyword/asset 进行快速编排。
+                规则会在刷新新闻后自动触发，可按 keyword / asset / reason 进行快速编排，也支持批量处理。
               </div>
             </div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>{rules.length} rules</div>
+            <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
+              <div style={{ fontSize: 12, color: "#64748b" }}>{rules.length} rules</div>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                已选 {selectedRuleKeywords.length} · 当前筛选 {filteredRules.length}
+              </div>
+            </div>
           </div>
 
           <div style={{ marginTop: 16, display: "grid", gap: 12, flex: 1, minHeight: 0 }}>
-            <div style={{ display: "grid", gap: 10 }}>
-              {rules.map((rule) => (
-                <div
-                  key={rule.keyword}
+            <div
+              style={{
+                display: "grid",
+                gap: 10,
+                padding: 14,
+                borderRadius: 18,
+                backgroundColor: "rgba(248,250,252,0.9)",
+                border: "1px solid rgba(15,23,42,0.06)",
+              }}
+            >
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <input
+                  value={ruleSearch}
+                  onChange={(e) => setRuleSearch(e.target.value)}
+                  placeholder="搜索规则 keyword / asset / reason"
                   style={{
-                    padding: 14,
-                    borderRadius: 18,
+                    flex: "1 1 260px",
+                    minWidth: 0,
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(15,23,42,0.12)",
+                    backgroundColor: "#fff",
+                    fontSize: 12,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleSelectVisibleRules(filteredRules)}
+                  disabled={filteredRules.length === 0}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
                     border: "1px solid rgba(15,23,42,0.08)",
                     backgroundColor: "#fff",
-                    boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
+                    color: "#0f172a",
+                    fontWeight: 700,
+                    cursor: filteredRules.length === 0 ? "not-allowed" : "pointer",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-                    <div>
-                      <div style={{ fontWeight: 800, color: "#0f172a" }}>{rule.keyword}</div>
-                      <div style={{ marginTop: 4, fontSize: 12, color: "#475569" }}>
-                        {rule.asset} · {rule.direction}
-                      </div>
-                    </div>
-                    <button
-                      style={{
-                        border: "none",
-                        background: "rgba(239,68,68,0.08)",
-                        color: "#dc2626",
-                        borderRadius: 999,
-                        padding: "6px 10px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => removeRule(rule.keyword)}
-                    >
-                      删除
-                    </button>
-                  </div>
-                  {rule.reason && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>{rule.reason}</div>
-                  )}
+                  {selectedVisibleRuleCount === filteredRules.length && filteredRules.length > 0 ? "取消当前筛选" : "全选当前筛选"}
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSelectedRules}
+                  disabled={selectedRuleKeywords.length === 0}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(239,68,68,0.18)",
+                    backgroundColor: selectedRuleKeywords.length === 0 ? "rgba(248,250,252,0.9)" : "rgba(239,68,68,0.1)",
+                    color: selectedRuleKeywords.length === 0 ? "#94a3b8" : "#b91c1c",
+                    fontWeight: 700,
+                    cursor: selectedRuleKeywords.length === 0 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  删除已选 {selectedRuleKeywords.length}
+                </button>
+              </div>
+
+              {selectedRuleKeywords.length > 0 && (
+                <div style={{ fontSize: 11, color: "#64748b" }}>
+                  已选择 {selectedRuleKeywords.length} 条规则，可继续勾选或直接批量删除。
                 </div>
-              ))}
-              {rules.length === 0 && (
+              )}
+
+              {filteredRules.length === 0 ? (
                 <div
                   style={{
                     padding: 16,
@@ -830,8 +918,74 @@ export default function AdminPage() {
                     backgroundColor: "rgba(248,250,252,0.9)",
                   }}
                 >
-                  暂无规则，先添加一条来开始自动生成信号。
+                  {rules.length === 0 ? "暂无规则，先添加一条来开始自动生成信号。" : "没有匹配的规则。"}
                 </div>
+              ) : (
+                filteredRules.map((rule) => {
+                  const selected = selectedRuleKeywords.includes(rule.keyword);
+                  const risk = getRuleRiskMeta(rule.direction);
+
+                  return (
+                    <div
+                      key={rule.keyword}
+                      style={{
+                        padding: 14,
+                        borderRadius: 18,
+                        border: `1px solid ${selected ? "rgba(37,99,235,0.18)" : "rgba(15,23,42,0.08)"}`,
+                        backgroundColor: selected ? "rgba(239,246,255,0.95)" : "#fff",
+                        boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                        <label style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer", flex: 1, minWidth: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleRuleSelection(rule.keyword)}
+                            style={{ marginTop: 4, flex: "0 0 auto" }}
+                          />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                              <div style={{ fontWeight: 800, color: "#0f172a" }}>{rule.keyword}</div>
+                              <span
+                                style={{
+                                  padding: "4px 8px",
+                                  borderRadius: 999,
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  color: risk.tone,
+                                  backgroundColor: risk.background,
+                                }}
+                              >
+                                {risk.label}
+                              </span>
+                            </div>
+                            <div style={{ marginTop: 4, fontSize: 12, color: "#475569", lineHeight: 1.4 }}>
+                              {rule.asset} · {rule.direction}
+                            </div>
+                          </div>
+                        </label>
+                        <button
+                          style={{
+                            border: "none",
+                            background: "rgba(239,68,68,0.08)",
+                            color: "#dc2626",
+                            borderRadius: 999,
+                            padding: "6px 10px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                          onClick={() => removeRule(rule.keyword)}
+                        >
+                          删除
+                        </button>
+                      </div>
+                      {rule.reason && (
+                        <div style={{ marginTop: 8, fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>{rule.reason}</div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
 
