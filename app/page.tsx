@@ -817,7 +817,11 @@ export default function AdminPage() {
     bearish: rules.filter((rule) => rule.direction === "bearish").length,
     neutral: rules.filter((rule) => rule.direction === "neutral").length,
   };
-  const groupedFilteredRules = RULE_RISK_ORDER.filter((group) => ruleRiskFilter === "all" || ruleRiskFilter === group).map((group) => ({
+  const visibleRuleGroups = RULE_RISK_ORDER.filter((group) => ruleRiskFilter === "all" || ruleRiskFilter === group);
+  const groupedFilteredRules: Array<{
+    group: Exclude<RuleRiskFilter, "all">;
+    rules: Rule[];
+  }> = visibleRuleGroups.map((group) => ({
     group,
     rules: filteredRules.filter((rule) => rule.direction === group),
   }));
