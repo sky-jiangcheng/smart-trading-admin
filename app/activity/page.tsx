@@ -1,7 +1,8 @@
 import AdminPage from "../page";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Investment Admin - Activity",
+export const metadata: Metadata = {
+  title: "Investment Admin · Activity",
   description: "Investment API 操作记录",
 };
 

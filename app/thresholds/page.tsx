@@ -1,7 +1,8 @@
 import AdminPage from "../page";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Investment Admin - Thresholds",
+export const metadata: Metadata = {
+  title: "Investment Admin · Thresholds",
   description: "Investment API 阈值管理",
 };
 

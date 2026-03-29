@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { config } from "../lib/config";
 
 type Rule = {
@@ -427,7 +427,6 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
   const [lastConfigSyncDurationMs, setLastConfigSyncDurationMs] = useState<number | null>(null);
   const [lastRefreshDurationMs, setLastRefreshDurationMs] = useState<number | null>(null);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
-  const router = useRouter();
 
   const auth = btoa(`${process.env.NEXT_PUBLIC_ADMIN_USER || "admin"}:${process.env.NEXT_PUBLIC_ADMIN_PASS || "password"}`);
 
@@ -910,11 +909,6 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
   const configSyncDurationLabel = lastConfigSyncDurationMs === null ? "暂无" : `${lastConfigSyncDurationMs} ms`;
   const refreshDurationLabel = lastRefreshDurationMs === null ? "暂无" : `${lastRefreshDurationMs} ms`;
 
-  function navigateWorkspace(workspace: Workspace) {
-    setActiveWorkspace(workspace);
-    router.push(WORKSPACE_PATHS[workspace]);
-  }
-
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
       <div style={{ display: "grid", gap: 8 }}>
@@ -1023,12 +1017,15 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           {WORKSPACE_NAV_ITEMS.map((item) => {
             const active = activeWorkspace === item.key;
             return (
-              <button
+              <Link
                 key={item.key}
-                type="button"
-                onClick={() => navigateWorkspace(item.key)}
+                href={WORKSPACE_PATHS[item.key]}
+                onClick={() => setActiveWorkspace(item.key)}
+                aria-current={active ? "page" : undefined}
                 style={{
+                  display: "block",
                   textAlign: "left",
+                  textDecoration: "none",
                   padding: "12px 14px",
                   borderRadius: 18,
                   border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
@@ -1044,7 +1041,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: active ? "#1d4ed8" : "#94a3b8" }}>{active ? "当前" : "进入"}</div>
                 </div>
-              </button>
+              </Link>
             );
           })}
         </nav>
@@ -1080,11 +1077,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = config.dashboardUrl;
-          }}
+        <a
+          href={config.dashboardUrl}
           style={{
             padding: "12px 14px",
             borderRadius: 14,
@@ -1093,10 +1087,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             color: "#fff",
             fontWeight: 700,
             cursor: "pointer",
+            textDecoration: "none",
           }}
         >
           返回 Dashboard
-        </button>
+        </a>
       </aside>
 
       <main style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1142,7 +1137,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <button
+          <a
+            href={config.dashboardUrl}
             style={{
               padding: "10px 14px",
               borderRadius: 14,
@@ -1151,13 +1147,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               color: "#fff",
               fontWeight: 700,
               cursor: "pointer",
-            }}
-            onClick={() => {
-              window.location.href = config.dashboardUrl;
+              textDecoration: "none",
             }}
           >
             返回 Dashboard
-          </button>
+          </a>
           <button
             type="button"
             disabled={isRefreshingNews}
@@ -1240,9 +1234,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 >
                   刷新新闻 + 信号
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigateWorkspace("sources")}
+                <Link
+                  href={WORKSPACE_PATHS.sources}
+                  onClick={() => setActiveWorkspace("sources")}
                   style={{
                     padding: "10px 12px",
                     borderRadius: 12,
@@ -1251,16 +1245,17 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     color: "#0f172a",
                     fontWeight: 700,
                     cursor: "pointer",
+                    textDecoration: "none",
                   }}
                 >
                   管理来源
-                </button>
+                </Link>
               </>
             )}
             {activeWorkspace === "sources" && (
-                <button
-                  type="button"
-                  onClick={() => navigateWorkspace("settings")}
+              <Link
+                href={WORKSPACE_PATHS.settings}
+                onClick={() => setActiveWorkspace("settings")}
                 style={{
                   padding: "10px 12px",
                   borderRadius: 12,
@@ -1269,15 +1264,16 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   color: "#0f172a",
                   fontWeight: 700,
                   cursor: "pointer",
+                  textDecoration: "none",
                 }}
               >
                 先调展示设置
-              </button>
+              </Link>
             )}
             {activeWorkspace === "thresholds" && (
-                <button
-                  type="button"
-                  onClick={() => navigateWorkspace("rules")}
+              <Link
+                href={WORKSPACE_PATHS.rules}
+                onClick={() => setActiveWorkspace("rules")}
                 style={{
                   padding: "10px 12px",
                   borderRadius: 12,
@@ -1286,10 +1282,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   color: "#0f172a",
                   fontWeight: 700,
                   cursor: "pointer",
+                  textDecoration: "none",
                 }}
               >
                 去看规则
-              </button>
+              </Link>
             )}
             {activeWorkspace === "rules" && (
               <button
@@ -1309,9 +1306,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               </button>
             )}
             {activeWorkspace === "activity" && (
-                <button
-                  type="button"
-                  onClick={() => navigateWorkspace("overview")}
+              <Link
+                href={WORKSPACE_PATHS.overview}
+                onClick={() => setActiveWorkspace("overview")}
                 style={{
                   padding: "10px 12px",
                   borderRadius: 12,
@@ -1320,10 +1317,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   color: "#0f172a",
                   fontWeight: 700,
                   cursor: "pointer",
+                  textDecoration: "none",
                 }}
               >
                 返回总览
-              </button>
+              </Link>
             )}
             {activeWorkspace === "settings" && (
               <button
@@ -1464,17 +1462,19 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
             {riskOverview.map((item) => (
-              <button
+              <Link
                 key={item.label}
-                type="button"
-                onClick={() => navigateWorkspace("rules")}
+                href={WORKSPACE_PATHS.rules}
+                onClick={() => setActiveWorkspace("rules")}
                 style={{
+                  display: "block",
                   padding: 14,
                   borderRadius: 16,
                   border: "1px solid rgba(15,23,42,0.08)",
                   backgroundColor: "#fff",
                   textAlign: "left",
                   cursor: "pointer",
+                  textDecoration: "none",
                 }}
               >
                 <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
@@ -1482,7 +1482,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 <div style={{ marginTop: 8, display: "inline-flex", padding: "4px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, color: item.tone, backgroundColor: item.background }}>
                   打开规则工作区
                 </div>
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -1503,9 +1503,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>最近变更</div>
               <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>最近 4 条操作记录</div>
             </div>
-            <button
-              type="button"
-              onClick={() => navigateWorkspace("activity")}
+            <Link
+              href={WORKSPACE_PATHS.activity}
+              onClick={() => setActiveWorkspace("activity")}
               style={{
                 padding: "8px 10px",
                 borderRadius: 12,
@@ -1514,10 +1514,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 color: "#0f172a",
                 fontWeight: 700,
                 cursor: "pointer",
+                textDecoration: "none",
               }}
             >
               查看全部
-            </button>
+            </Link>
           </div>
 
           <div style={{ display: "grid", gap: 10 }}>

@@ -1,7 +1,8 @@
 import AdminPage from "../page";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Investment Admin - Settings",
+export const metadata: Metadata = {
+  title: "Investment Admin · Settings",
   description: "Investment API 全局设置",
 };
 
