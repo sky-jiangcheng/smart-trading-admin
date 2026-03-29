@@ -1548,19 +1548,19 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         style={{
           display: isOverviewWorkspace ? "grid" : "none",
           gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr)",
-          gap: 16,
+          gap: 12,
           alignItems: "start",
         }}
       >
         <div
           style={{
-            padding: 16,
-            borderRadius: 18,
+            padding: 14,
+            borderRadius: 16,
             border: "1px solid rgba(15,23,42,0.08)",
             backgroundColor: "rgba(255,255,255,0.82)",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            boxShadow: "0 10px 22px rgba(15,23,42,0.05)",
             display: "grid",
-            gap: 12,
+            gap: 10,
             alignSelf: "start",
           }}
         >
@@ -1571,7 +1571,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             </div>
             <div style={{ fontSize: 11, color: "#64748b" }}>规则 {rules.length} · 阈值 {thresholds.length}</div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
             {riskOverview.map((item) => (
               <Link
                 key={item.label}
@@ -1579,8 +1579,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 onClick={() => setActiveWorkspace("rules")}
                 style={{
                   display: "block",
-                  padding: 14,
-                  borderRadius: 16,
+                  padding: 12,
+                  borderRadius: 14,
                   border: "1px solid rgba(15,23,42,0.08)",
                   backgroundColor: "#fff",
                   textAlign: "left",
@@ -1588,9 +1588,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   textDecoration: "none",
                 }}
               >
-                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
-                <div style={{ marginTop: 6, fontSize: 24, color: item.tone, fontWeight: 800 }}>{item.value}</div>
-                <div style={{ marginTop: 8, display: "inline-flex", padding: "4px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, color: item.tone, backgroundColor: item.background }}>
+                <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                <div style={{ marginTop: 4, fontSize: 22, color: item.tone, fontWeight: 800 }}>{item.value}</div>
+                <div style={{ marginTop: 6, display: "inline-flex", padding: "3px 7px", borderRadius: 999, fontSize: 9, fontWeight: 800, color: item.tone, backgroundColor: item.background }}>
                   打开规则工作区
                 </div>
               </Link>
@@ -1600,13 +1600,13 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
 
         <div
           style={{
-            padding: 16,
-            borderRadius: 18,
+            padding: 14,
+            borderRadius: 16,
             border: "1px solid rgba(15,23,42,0.08)",
             backgroundColor: "rgba(255,255,255,0.82)",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            boxShadow: "0 10px 22px rgba(15,23,42,0.05)",
             display: "grid",
-            gap: 12,
+            gap: 10,
             alignSelf: "start",
           }}
         >
@@ -1621,16 +1621,16 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             }
           />
 
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gap: 8 }}>
             {recentActivity.length === 0 ? (
               <EmptyState title="暂无操作记录" description="完成一次配置同步后会出现在这里。" />
             ) : (
               recentActivity.map((entry) => (
-                <div key={entry.id} style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
+                <div key={entry.id} style={{ padding: 10, borderRadius: 12, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, color: "#0f172a" }}>{entry.title}</div>
-                      <div style={{ marginTop: 4, fontSize: 12, color: "#475569" }}>{entry.detail}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{entry.title}</div>
+                      <div style={{ marginTop: 3, fontSize: 11, color: "#475569" }}>{entry.detail}</div>
                     </div>
                     <div style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>{formatRelativeTime(entry.at)}</div>
                   </div>
@@ -1645,19 +1645,19 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         style={{
           display: isOverviewWorkspace ? "grid" : "none",
           gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 0.8fr)",
-          gap: 16,
+          gap: 12,
           alignItems: "start",
         }}
       >
         <div
           style={{
-            padding: 16,
-            borderRadius: 18,
+            padding: 14,
+            borderRadius: 16,
             border: "1px solid rgba(15,23,42,0.08)",
             backgroundColor: "rgba(255,255,255,0.82)",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            boxShadow: "0 10px 22px rgba(15,23,42,0.05)",
             display: "grid",
-            gap: 12,
+            gap: 10,
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -1667,7 +1667,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             </div>
             <div style={{ fontSize: 11, color: "#64748b" }}>按操作频率排序</div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
             {[
               { key: "thresholds" as Workspace, label: "Thresholds", meta: "查看阈值预设和触发压力", href: WORKSPACE_PATHS.thresholds, tone: "#1d4ed8" },
               { key: "sources" as Workspace, label: "Sources", meta: "检查来源池与启用结构", href: WORKSPACE_PATHS.sources, tone: "#0f766e" },
@@ -1679,20 +1679,20 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 onClick={() => setActiveWorkspace(item.key)}
                 style={{
                   display: "grid",
-                  gap: 8,
-                  padding: 14,
-                  borderRadius: 16,
+                  gap: 6,
+                  padding: 12,
+                  borderRadius: 14,
                   border: "1px solid rgba(15,23,42,0.08)",
                   background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%)",
                   textDecoration: "none",
-                  boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
+                  boxShadow: "0 8px 18px rgba(15,23,42,0.04)",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-                  <div style={{ fontWeight: 800, color: "#0f172a" }}>{item.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{item.label}</div>
                   <div style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: item.tone, boxShadow: `0 0 0 4px ${item.tone}22` }} />
                 </div>
-                <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.45 }}>{item.meta}</div>
+                <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.4 }}>{item.meta}</div>
               </Link>
             ))}
           </div>
@@ -1700,13 +1700,13 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
 
         <div
           style={{
-            padding: 16,
-            borderRadius: 18,
+            padding: 14,
+            borderRadius: 16,
             border: "1px solid rgba(15,23,42,0.08)",
             backgroundColor: "rgba(255,255,255,0.82)",
-            boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            boxShadow: "0 10px 22px rgba(15,23,42,0.05)",
             display: "grid",
-            gap: 12,
+            gap: 10,
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -1747,7 +1747,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         style={{
           display: isOverviewWorkspace ? "grid" : "none",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: 12,
+          gap: 10,
         }}
       >
         {[
@@ -1759,18 +1759,18 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           <div
             key={item.label}
             style={{
-              padding: 16,
-              borderRadius: 18,
+              padding: 14,
+              borderRadius: 16,
               border: "1px solid rgba(15,23,42,0.08)",
               backgroundColor: "rgba(255,255,255,0.8)",
-              boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+              boxShadow: "0 10px 22px rgba(15,23,42,0.05)",
               display: "grid",
-              gap: 6,
+              gap: 5,
             }}
           >
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.05 }}>{item.value}</div>
-            <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>{item.meta}</div>
+            <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", lineHeight: 1.05 }}>{item.value}</div>
+            <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.35 }}>{item.meta}</div>
           </div>
         ))}
       </section>
@@ -2459,13 +2459,13 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
       <section
         style={{
           display: isActivityWorkspace ? "grid" : "none",
-          padding: 16,
-          borderRadius: 24,
+          padding: 14,
+          borderRadius: 20,
           border: "1px solid rgba(15,23,42,0.08)",
           background: "rgba(255,255,255,0.82)",
-          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+          boxShadow: "0 14px 32px rgba(15,23,42,0.07)",
           backdropFilter: "blur(16px)",
-          gap: 14,
+          gap: 12,
         }}
       >
         <SectionHeader
@@ -2475,36 +2475,36 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           action={<div style={{ fontSize: 12, color: "#64748b" }}>{activityLog.length} total</div>}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 0.85fr) minmax(0, 1.15fr)", gap: 14, alignItems: "start" }}>
-          <div style={{ display: "grid", gap: 12, alignContent: "start", position: "sticky", top: 16, alignSelf: "start" }}>
-            <div style={{ padding: 14, borderRadius: 18, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(248,250,252,0.92)", display: "grid", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 0.85fr) minmax(0, 1.15fr)", gap: 12, alignItems: "start" }}>
+          <div style={{ display: "grid", gap: 10, alignContent: "start", position: "sticky", top: 16, alignSelf: "start" }}>
+            <div style={{ padding: 12, borderRadius: 16, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(248,250,252,0.92)", display: "grid", gap: 10 }}>
               <div style={{ display: "grid", gap: 2 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>活动概览</div>
-                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>把成功、告警和错误拆开看，方便快速定位近期变化。</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>活动概览</div>
+                <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.45 }}>把成功、告警和错误拆开看，方便快速定位近期变化。</div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 7 }}>
                 {[
                   { label: "成功", value: activitySuccessCount, tone: "#166534", background: "rgba(34,197,94,0.12)" },
                   { label: "告警", value: activityWarningCount, tone: "#b45309", background: "rgba(245,158,11,0.12)" },
                   { label: "错误", value: activityErrorCount, tone: "#b91c1c", background: "rgba(239,68,68,0.12)" },
                   { label: "总计", value: activityLog.length, tone: "#0f172a", background: "rgba(15,23,42,0.06)" },
                 ].map((item) => (
-                  <div key={item.label} style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff", display: "grid", gap: 4 }}>
-                    <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: item.tone, lineHeight: 1.05 }}>{item.value}</div>
-                    <div style={{ fontSize: 10, color: "#94a3b8" }}>最近 12 条本地记录</div>
+                  <div key={item.label} style={{ padding: 10, borderRadius: 12, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff", display: "grid", gap: 3 }}>
+                    <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: item.tone, lineHeight: 1.05 }}>{item.value}</div>
+                    <div style={{ fontSize: 9, color: "#94a3b8" }}>最近 12 条本地记录</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div style={{ padding: 14, borderRadius: 18, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(255,255,255,0.88)", display: "grid", gap: 10, boxShadow: "0 12px 30px rgba(15,23,42,0.04)" }}>
+            <div style={{ padding: 12, borderRadius: 16, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(255,255,255,0.88)", display: "grid", gap: 8, boxShadow: "0 10px 22px rgba(15,23,42,0.04)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>最近高亮</div>
-                  <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>把最近几条动作压缩成可快速扫读的节奏。</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>最近高亮</div>
+                  <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.45 }}>把最近几条动作压缩成可快速扫读的节奏。</div>
                 </div>
-                <div style={{ fontSize: 11, color: "#94a3b8" }}>{recentActivity.length} 条</div>
+                <div style={{ fontSize: 10, color: "#94a3b8" }}>{recentActivity.length} 条</div>
               </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {(recentActivity.length > 0 ? recentActivity.slice(0, 4) : []).map((entry) => {
@@ -2518,15 +2518,15 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                           : { color: "#1d4ed8", backgroundColor: "rgba(59,130,246,0.12)" };
 
                   return (
-                    <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", padding: "8px 10px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.06)", backgroundColor: "rgba(248,250,252,0.9)" }}>
+                    <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", padding: "7px 9px", borderRadius: 11, border: "1px solid rgba(15,23,42,0.06)", backgroundColor: "rgba(248,250,252,0.9)" }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                          <span style={{ padding: "3px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, ...badgeStyle }}>{entry.level}</span>
-                          <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{entry.title}</span>
+                          <span style={{ padding: "3px 7px", borderRadius: 999, fontSize: 9, fontWeight: 800, ...badgeStyle }}>{entry.level}</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>{entry.title}</span>
                         </div>
-                        <div style={{ marginTop: 4, fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>{entry.detail}</div>
+                        <div style={{ marginTop: 3, fontSize: 10, color: "#64748b", lineHeight: 1.45 }}>{entry.detail}</div>
                       </div>
-                      <div style={{ fontSize: 10, color: "#94a3b8", whiteSpace: "nowrap" }}>{formatRelativeTime(entry.at)}</div>
+                      <div style={{ fontSize: 9, color: "#94a3b8", whiteSpace: "nowrap" }}>{formatRelativeTime(entry.at)}</div>
                     </div>
                   );
                 })}
@@ -2534,28 +2534,28 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               </div>
             </div>
 
-            <div style={{ padding: 14, borderRadius: 18, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(248,250,252,0.92)", display: "grid", gap: 10 }}>
+            <div style={{ padding: 12, borderRadius: 16, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(248,250,252,0.92)", display: "grid", gap: 8 }}>
               <div style={{ display: "grid", gap: 2 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>工作区脉冲</div>
-                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>把当前控制台的关键状态收拢到一屏里。</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>工作区脉冲</div>
+                <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.45 }}>把当前控制台的关键状态收拢到一屏里。</div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 7 }}>
                 {[
                   { label: "来源", value: sources.length, tone: "#0f172a" },
                   { label: "阈值", value: thresholds.length, tone: "#1d4ed8" },
                   { label: "规则", value: rules.length, tone: "#166534" },
                   { label: "刷新", value: lastRefreshLabel, tone: "#334155" },
                 ].map((item) => (
-                  <div key={item.label} style={{ padding: 10, borderRadius: 14, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff", display: "grid", gap: 4 }}>
-                    <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: item.tone, lineHeight: 1.05 }}>{item.value}</div>
+                  <div key={item.label} style={{ padding: 9, borderRadius: 12, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff", display: "grid", gap: 3 }}>
+                    <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: item.tone, lineHeight: 1.05 }}>{item.value}</div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: 10, minHeight: 0 }}>
+          <div style={{ display: "grid", gap: 8, minHeight: 0 }}>
             {activityLog.length === 0 ? (
               <EmptyState title="暂无操作记录" description="现在还没有可回看的配置变更。" />
             ) : (
@@ -2570,14 +2570,14 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                         : { color: "#1d4ed8", backgroundColor: "rgba(59,130,246,0.12)" };
 
                 return (
-                  <div key={entry.id} style={{ padding: 14, borderRadius: 16, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
+                  <div key={entry.id} style={{ padding: 11, borderRadius: 14, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                          <span style={{ padding: "3px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, ...levelStyle }}>{entry.title}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{entry.detail}</span>
+                          <span style={{ padding: "3px 7px", borderRadius: 999, fontSize: 9, fontWeight: 800, ...levelStyle }}>{entry.title}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>{entry.detail}</span>
                         </div>
-                        <div style={{ marginTop: 4, fontSize: 11, color: "#94a3b8" }}>{formatRelativeTime(entry.at)}</div>
+                        <div style={{ marginTop: 3, fontSize: 10, color: "#94a3b8" }}>{formatRelativeTime(entry.at)}</div>
                       </div>
                     </div>
                   </div>
@@ -2601,10 +2601,10 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           display: isSourcesWorkspace ? "grid" : "none",
           minWidth: 0,
           border: "1px solid rgba(15,23,42,0.08)",
-          borderRadius: 24,
+          borderRadius: 20,
           background: "rgba(255,255,255,0.82)",
-          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
-          padding: 18,
+          boxShadow: "0 14px 32px rgba(15,23,42,0.07)",
+          padding: 14,
           backdropFilter: "blur(16px)",
         }}
       >
@@ -2622,7 +2622,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           }
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
           {[
             { label: "已启用", value: sources.length, meta: "全部来源" },
             { label: "默认组", value: chinaEnabled.length + globalEnabled.length, meta: "推荐配置" },
@@ -2633,40 +2633,12 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           ))}
         </div>
 
-        <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(300px, 0.88fr) minmax(0, 1.12fr)", gap: 14, alignItems: "start" }}>
-          <div style={{ display: "grid", gap: 12, alignContent: "start", position: "sticky", top: 16, alignSelf: "start" }}>
+        <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "minmax(300px, 0.88fr) minmax(0, 1.12fr)", gap: 12, alignItems: "start" }}>
+          <div style={{ display: "grid", gap: 10, alignContent: "start", position: "sticky", top: 16, alignSelf: "start" }}>
             <div
               style={{
-                padding: 14,
-                borderRadius: 18,
-                backgroundColor: "rgba(248,250,252,0.92)",
-                border: "1px solid rgba(15,23,42,0.06)",
-                display: "grid",
-                gap: 12,
-              }}
-            >
-              <div style={{ display: "grid", gap: 2 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>源池概况</div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>先把常用来源补齐，再到右侧检查启用结果。</div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-                {[
-                  { label: "已启用", value: sources.length },
-                  { label: "默认组", value: chinaEnabled.length + globalEnabled.length },
-                  { label: "自定义", value: customSources.length },
-                ].map((item) => (
-                  <div key={item.label} style={{ padding: 12, borderRadius: 14, backgroundColor: "#fff", border: "1px solid rgba(15,23,42,0.08)", display: "grid", gap: 4 }}>
-                    <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
-                    <div style={{ fontSize: 20, color: "#0f172a", fontWeight: 800, lineHeight: 1.05 }}>{item.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div
-              style={{
-                padding: 14,
-                borderRadius: 18,
+                padding: 12,
+                borderRadius: 16,
                 backgroundColor: "rgba(248,250,252,0.92)",
                 border: "1px solid rgba(15,23,42,0.06)",
                 display: "grid",
@@ -2674,8 +2646,36 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               }}
             >
               <div style={{ display: "grid", gap: 2 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>快速添加</div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>新源先在这里录入，避免和当前列表混在一起。</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>源池概况</div>
+                <div style={{ fontSize: 10, color: "#64748b" }}>先把常用来源补齐，再到右侧检查启用结果。</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
+                {[
+                  { label: "已启用", value: sources.length },
+                  { label: "默认组", value: chinaEnabled.length + globalEnabled.length },
+                  { label: "自定义", value: customSources.length },
+                ].map((item) => (
+                  <div key={item.label} style={{ padding: 10, borderRadius: 12, backgroundColor: "#fff", border: "1px solid rgba(15,23,42,0.08)", display: "grid", gap: 3 }}>
+                    <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                    <div style={{ fontSize: 18, color: "#0f172a", fontWeight: 800, lineHeight: 1.05 }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 16,
+                backgroundColor: "rgba(248,250,252,0.92)",
+                border: "1px solid rgba(15,23,42,0.06)",
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>快速添加</div>
+                <div style={{ fontSize: 10, color: "#64748b" }}>新源先在这里录入，避免和当前列表混在一起。</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <input
@@ -2685,8 +2685,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   style={{
                     flex: "1 1 240px",
                     minWidth: 0,
-                    padding: "10px 12px",
-                    borderRadius: 12,
+                    padding: "9px 11px",
+                    borderRadius: 11,
                     border: "1px solid rgba(15,23,42,0.12)",
                     backgroundColor: "#fff",
                   }}
@@ -2694,8 +2694,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 <button
                   onClick={addSource}
                   style={{
-                    padding: "10px 14px",
-                    borderRadius: 12,
+                    padding: "9px 12px",
+                    borderRadius: 11,
                     border: "1px solid rgba(15,23,42,0.08)",
                     backgroundColor: "#0f172a",
                     color: "#fff",
@@ -2710,20 +2710,20 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
 
             <div
               style={{
-                padding: 14,
-                borderRadius: 18,
+                padding: 12,
+                borderRadius: 16,
                 backgroundColor: "rgba(248,250,252,0.92)",
                 border: "1px solid rgba(15,23,42,0.06)",
                 display: "grid",
-                gap: 10,
+                gap: 8,
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>默认启用</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>默认启用</div>
               <button
                 onClick={() => addPresetGroup("china")}
                 style={{
-                  padding: "10px 12px",
-                  borderRadius: 14,
+                  padding: "9px 11px",
+                  borderRadius: 11,
                   border: "1px solid rgba(15,23,42,0.08)",
                   backgroundColor: "#0f172a",
                   color: "#fff",
@@ -2736,8 +2736,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               <button
                 onClick={() => addPresetGroup("global")}
                 style={{
-                  padding: "10px 12px",
-                  borderRadius: 14,
+                  padding: "9px 11px",
+                  borderRadius: 11,
                   border: "1px solid rgba(15,23,42,0.08)",
                   backgroundColor: "#ffffff",
                   color: "#0f172a",
@@ -2756,23 +2756,23 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
 
           <div
             style={{
-              padding: 14,
-              borderRadius: 18,
+              padding: 12,
+              borderRadius: 16,
               backgroundColor: "rgba(255,255,255,0.92)",
               border: "1px solid rgba(15,23,42,0.08)",
               display: "grid",
-              gap: 12,
+              gap: 10,
               minHeight: 0,
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>已启用来源</div>
-                <div style={{ marginTop: 4, fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>已启用来源</div>
+                <div style={{ marginTop: 3, fontSize: 10, color: "#64748b", lineHeight: 1.45 }}>
                   搜索当前启用的源，删除后会立即影响 Dashboard 的聚合结果。
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+              <div style={{ fontSize: 10, color: "#64748b", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
                 {filteredSources.length}/{sources.length} sources
               </div>
             </div>
@@ -2783,11 +2783,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               placeholder="搜索已启用来源"
               style={{
                 width: "100%",
-                padding: "10px 12px",
-                borderRadius: 12,
+                padding: "9px 11px",
+                borderRadius: 11,
                 border: "1px solid rgba(15,23,42,0.12)",
                 backgroundColor: "#fff",
-                fontSize: 12,
+                fontSize: 11,
               }}
             />
 
@@ -2801,12 +2801,12 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 8,
-                      padding: "8px 10px",
+                      padding: "7px 9px",
                       borderRadius: 999,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: isPreset ? "rgba(15,23,42,0.05)" : "rgba(239,246,255,0.9)",
                       color: "#0f172a",
-                      fontSize: 12,
+                      fontSize: 11,
                       maxWidth: "100%",
                     }}
                   >
@@ -2843,10 +2843,10 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           display: isRulesWorkspace ? "flex" : "none",
           minWidth: 0,
           border: "1px solid rgba(15,23,42,0.08)",
-          borderRadius: 22,
+          borderRadius: 20,
           background: "rgba(255,255,255,0.82)",
-          boxShadow: "0 18px 42px rgba(15,23,42,0.07)",
-          padding: 14,
+          boxShadow: "0 14px 32px rgba(15,23,42,0.07)",
+          padding: 12,
           backdropFilter: "blur(16px)",
           flexDirection: "column",
           minHeight: 0,
@@ -2869,7 +2869,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             }
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8, marginTop: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 7, marginTop: 10 }}>
             {[
               { key: "all", label: "全部规则", value: rules.length, tone: "#0f172a", background: "rgba(15,23,42,0.06)" },
               { key: "bullish", label: "高关注", value: ruleRiskCounts.bullish, tone: "#166534", background: "rgba(34,197,94,0.12)" },
@@ -2884,27 +2884,27 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   onClick={() => setRuleRiskFilter(item.key as RuleRiskFilter)}
                   style={{
                     textAlign: "left",
-                    padding: 12,
-                    borderRadius: 16,
-                    border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
-                    backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
-                    boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
-                    cursor: "pointer",
-                    display: "grid",
-                    gap: 4,
-                  }}
-                >
-                  <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
-                  <div style={{ fontSize: 22, lineHeight: 1.05, fontWeight: 800, color: item.tone }}>{item.value}</div>
+                      padding: 11,
+                      borderRadius: 14,
+                      border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                      backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                      boxShadow: "0 8px 18px rgba(15,23,42,0.04)",
+                      cursor: "pointer",
+                      display: "grid",
+                      gap: 3,
+                    }}
+                  >
+                  <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                  <div style={{ fontSize: 20, lineHeight: 1.05, fontWeight: 800, color: item.tone }}>{item.value}</div>
                   <div
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
                       width: "fit-content",
-                      padding: "4px 8px",
+                      padding: "3px 7px",
                       borderRadius: 999,
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: 800,
                       color: item.tone,
                       backgroundColor: item.background,
@@ -2917,10 +2917,10 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               })}
           </div>
 
-          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+          <div style={{ display: "grid", gap: 7, marginTop: 9 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>规则预设</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>先载入模板，再微调 keyword / asset / reason</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>规则预设</div>
+              <div style={{ fontSize: 10, color: "#64748b" }}>先载入模板，再微调 keyword / asset / reason</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
               {RULE_QUICK_PRESETS.map((preset) => (
@@ -2930,21 +2930,21 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   onClick={() => fillRulePreset(preset)}
                   style={{
                     textAlign: "left",
-                    padding: 12,
-                    borderRadius: 14,
+                    padding: 11,
+                    borderRadius: 12,
                     border: "1px solid rgba(15,23,42,0.08)",
                     backgroundColor: "#fff",
-                    boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
+                    boxShadow: "0 8px 18px rgba(15,23,42,0.04)",
                     cursor: "pointer",
                     display: "grid",
-                    gap: 5,
+                    gap: 4,
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{preset.label}</div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", backgroundColor: "rgba(15,23,42,0.05)", padding: "3px 7px", borderRadius: 999 }}>模板</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>{preset.label}</div>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: "#64748b", backgroundColor: "rgba(15,23,42,0.05)", padding: "3px 6px", borderRadius: 999 }}>模板</div>
                   </div>
-                  <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.45 }}>
+                  <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.4 }}>
                     {preset.keyword} · {preset.asset} · {preset.direction}
                   </div>
                 </button>
@@ -2952,14 +2952,14 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             </div>
           </div>
 
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "minmax(0, 1.22fr) minmax(304px, 0.78fr)", gap: 12, flex: 1, minHeight: 0, alignItems: "start" }}>
-            <div style={{ display: "grid", gap: 12, minHeight: 0 }}>
+          <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "minmax(0, 1.18fr) minmax(292px, 0.82fr)", gap: 10, flex: 1, minHeight: 0, alignItems: "start" }}>
+            <div style={{ display: "grid", gap: 10, minHeight: 0 }}>
               <div
                 style={{
                   display: "grid",
-                  gap: 10,
-                  padding: 12,
-                  borderRadius: 16,
+                  gap: 8,
+                  padding: 11,
+                  borderRadius: 14,
                   backgroundColor: "rgba(248,250,252,0.9)",
                   border: "1px solid rgba(15,23,42,0.06)",
                 }}
@@ -2967,25 +2967,25 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <input
                     value={ruleSearch}
-                  onChange={(e) => setRuleSearch(e.target.value)}
-                  placeholder="搜索规则 keyword / asset / reason"
-                  style={{
-                    flex: "1 1 260px",
-                        minWidth: 0,
-                        padding: "9px 11px",
-                        borderRadius: 11,
-                        border: "1px solid rgba(15,23,42,0.12)",
-                        backgroundColor: "#fff",
-                        fontSize: 12,
-                  }}
-                />
+                    onChange={(e) => setRuleSearch(e.target.value)}
+                    placeholder="搜索规则 keyword / asset / reason"
+                    style={{
+                      flex: "1 1 260px",
+                      minWidth: 0,
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(15,23,42,0.12)",
+                      backgroundColor: "#fff",
+                      fontSize: 11,
+                    }}
+                  />
                 <button
                   type="button"
                   onClick={() => toggleSelectVisibleRules(filteredRules)}
                   disabled={filteredRules.length === 0}
                   style={{
-                    padding: "9px 11px",
-                    borderRadius: 11,
+                    padding: "8px 10px",
+                    borderRadius: 10,
                     border: "1px solid rgba(15,23,42,0.08)",
                     backgroundColor: "#fff",
                     color: "#0f172a",
@@ -3000,8 +3000,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   onClick={deleteSelectedRules}
                   disabled={selectedRuleKeywords.length === 0}
                   style={{
-                    padding: "9px 11px",
-                    borderRadius: 11,
+                    padding: "8px 10px",
+                    borderRadius: 10,
                     border: "1px solid rgba(239,68,68,0.18)",
                     backgroundColor: selectedRuleKeywords.length === 0 ? "rgba(248,250,252,0.9)" : "rgba(239,68,68,0.1)",
                     color: selectedRuleKeywords.length === 0 ? "#94a3b8" : "#b91c1c",
@@ -3026,15 +3026,15 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   justifyContent: "space-between",
                   gap: 12,
                   flexWrap: "wrap",
-                  padding: "9px 11px",
-                  borderRadius: 12,
+                  padding: "8px 10px",
+                  borderRadius: 11,
                   border: "1px solid rgba(15,23,42,0.08)",
                   backgroundColor: "rgba(255,255,255,0.9)",
                 }}
               >
                 <div style={{ display: "grid", gap: 2 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>运营操作条</div>
-                  <div style={{ fontSize: 10, color: "#64748b" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#0f172a" }}>运营操作条</div>
+                  <div style={{ fontSize: 9, color: "#64748b" }}>
                     当前风险筛选、搜索与批量选择都在这里统一收口。
                   </div>
                 </div>
@@ -3043,8 +3043,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     type="button"
                     onClick={() => setAllRuleGroupsCollapsed(true)}
                     style={{
-                      padding: "7px 10px",
-                      borderRadius: 11,
+                      padding: "6px 9px",
+                      borderRadius: 10,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: "#fff",
                       color: "#0f172a",
@@ -3058,8 +3058,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     type="button"
                     onClick={() => setAllRuleGroupsCollapsed(false)}
                     style={{
-                      padding: "7px 10px",
-                      borderRadius: 11,
+                      padding: "6px 9px",
+                      borderRadius: 10,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: "#fff",
                       color: "#0f172a",
@@ -3074,8 +3074,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     onClick={() => setSelectedRuleKeywords([])}
                     disabled={selectedRuleKeywords.length === 0}
                     style={{
-                      padding: "7px 10px",
-                      borderRadius: 11,
+                      padding: "6px 9px",
+                      borderRadius: 10,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: selectedRuleKeywords.length === 0 ? "rgba(248,250,252,0.9)" : "#fff",
                       color: selectedRuleKeywords.length === 0 ? "#94a3b8" : "#0f172a",
@@ -3089,8 +3089,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     type="button"
                     onClick={resetRuleView}
                     style={{
-                      padding: "7px 10px",
-                      borderRadius: 11,
+                      padding: "6px 9px",
+                      borderRadius: 10,
                       border: "1px solid rgba(15,23,42,0.08)",
                       backgroundColor: "#0f172a",
                       color: "#fff",
@@ -3129,10 +3129,10 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     <div
                       key={group}
                       style={{
-                        borderRadius: 18,
+                        borderRadius: 16,
                         border: `1px solid ${group === "bullish" ? "rgba(34,197,94,0.14)" : group === "bearish" ? "rgba(239,68,68,0.14)" : "rgba(245,158,11,0.14)"}`,
                         backgroundColor: "rgba(255,255,255,0.96)",
-                        boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
+                        boxShadow: "0 10px 22px rgba(15,23,42,0.04)",
                         overflow: "hidden",
                       }}
                     >
@@ -3141,8 +3141,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          gap: 12,
-                          padding: "12px 14px",
+                          gap: 10,
+                          padding: "10px 12px",
                           backgroundColor: risk.background,
                         }}
                       >
@@ -3164,18 +3164,18 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                         >
                           <span
                             style={{
-                              width: 10,
-                              height: 10,
+                              width: 8,
+                              height: 8,
                               borderRadius: 999,
                               backgroundColor: risk.tone,
                               flex: "0 0 auto",
                             }}
                           />
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
                               {groupLabel} · {groupRules.length}
                             </div>
-                            <div style={{ marginTop: 2, fontSize: 11, color: "#475569" }}>
+                            <div style={{ marginTop: 2, fontSize: 10, color: "#475569" }}>
                               已选 {selectedCount} · 点击可收起 / 展开
                             </div>
                           </div>
@@ -3186,8 +3186,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                             onClick={() => (allSelected ? setSelectedRuleKeywords((current) => current.filter((keyword) => !groupKeywords.includes(keyword))) : selectRuleGroup(groupRules))}
                             disabled={groupRules.length === 0}
                             style={{
-                              padding: "8px 10px",
-                              borderRadius: 12,
+                              padding: "7px 9px",
+                              borderRadius: 10,
                               border: "1px solid rgba(15,23,42,0.08)",
                               backgroundColor: "#fff",
                               color: "#0f172a",
@@ -3202,8 +3202,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                             onClick={() => deleteRuleGroup(groupRules)}
                             disabled={groupRules.length === 0}
                             style={{
-                              padding: "8px 10px",
-                              borderRadius: 12,
+                              padding: "7px 9px",
+                              borderRadius: 10,
                               border: "1px solid rgba(239,68,68,0.18)",
                               backgroundColor: "rgba(239,68,68,0.1)",
                               color: "#b91c1c",
@@ -3217,7 +3217,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                       </div>
 
                       {!collapsed && (
-                        <div style={{ display: "grid", gap: 10, padding: 14 }}>
+                        <div style={{ display: "grid", gap: 8, padding: 12 }}>
                           {groupRules.map((rule) => {
                             const selected = selectedRuleKeywords.includes(rule.keyword);
                             const itemRisk = getRuleRiskMeta(rule.direction);
@@ -3226,8 +3226,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                               <div
                                 key={rule.keyword}
                                 style={{
-                                  padding: 14,
-                                  borderRadius: 18,
+                                  padding: 12,
+                                  borderRadius: 14,
                                   border: `1px solid ${selected ? "rgba(37,99,235,0.18)" : "rgba(15,23,42,0.08)"}`,
                                   backgroundColor: selected ? "rgba(239,246,255,0.95)" : "#fff",
                                 }}
@@ -3242,12 +3242,12 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                                     />
                                     <div style={{ minWidth: 0 }}>
                                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                                        <div style={{ fontWeight: 800, color: "#0f172a" }}>{rule.keyword}</div>
+                                        <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{rule.keyword}</div>
                                         <span
                                           style={{
-                                            padding: "4px 8px",
+                                            padding: "3px 7px",
                                             borderRadius: 999,
-                                            fontSize: 11,
+                                            fontSize: 10,
                                             fontWeight: 800,
                                             color: itemRisk.tone,
                                             backgroundColor: itemRisk.background,
@@ -3256,7 +3256,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                                           {itemRisk.label}
                                         </span>
                                       </div>
-                                      <div style={{ marginTop: 4, fontSize: 12, color: "#475569", lineHeight: 1.4 }}>
+                                      <div style={{ marginTop: 3, fontSize: 11, color: "#475569", lineHeight: 1.35 }}>
                                         {rule.asset} · {rule.direction}
                                       </div>
                                     </div>
@@ -3267,7 +3267,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                                       background: "rgba(239,68,68,0.08)",
                                       color: "#dc2626",
                                       borderRadius: 999,
-                                      padding: "6px 10px",
+                                      padding: "5px 8px",
                                       fontWeight: 700,
                                       cursor: "pointer",
                                     }}
@@ -3277,7 +3277,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                                   </button>
                                 </div>
                                 {rule.reason && (
-                                  <div style={{ marginTop: 8, fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>{rule.reason}</div>
+                                  <div style={{ marginTop: 6, fontSize: 11, color: "#64748b", lineHeight: 1.35 }}>{rule.reason}</div>
                                 )}
                               </div>
                             );
@@ -3293,9 +3293,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             <div
               style={{
                 display: "grid",
-                gap: 9,
-                padding: 12,
-                borderRadius: 16,
+                gap: 8,
+                padding: 11,
+                borderRadius: 14,
                 backgroundColor: "rgba(248,250,252,0.9)",
                 border: "1px solid rgba(15,23,42,0.06)",
                 position: "sticky",
@@ -3305,16 +3305,16 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>编辑规则</div>
-                  <div style={{ marginTop: 2, fontSize: 10, color: "#64748b" }}>先用模板，后微调字段，减少手工输入。</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>编辑规则</div>
+                  <div style={{ marginTop: 2, fontSize: 9, color: "#64748b" }}>先用模板，后微调字段，减少手工输入。</div>
                 </div>
                 <div
                   style={{
-                    padding: "4px 8px",
+                    padding: "3px 7px",
                     borderRadius: 999,
                     backgroundColor: "rgba(15,23,42,0.06)",
                     color: "#475569",
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: 800,
                   }}
                 >
@@ -3323,7 +3323,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               </div>
 
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>方向</div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>方向</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {[
                     { label: "高关注", value: "bullish" as Rule["direction"], tone: "#166534" },
@@ -3337,12 +3337,12 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                         type="button"
                         onClick={() => setNewRule((prev) => ({ ...prev, direction: chip.value }))}
                         style={{
-                          padding: "7px 10px",
-                          borderRadius: 11,
+                          padding: "6px 9px",
+                          borderRadius: 10,
                           border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
                           backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
                           color: chip.tone,
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: 800,
                           cursor: "pointer",
                         }}
@@ -3355,7 +3355,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               </div>
 
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>常用资产</div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>常用资产</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {RULE_ASSET_PRESETS.map((asset) => {
                     const active = newRule.asset === asset;
@@ -3365,12 +3365,12 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                         type="button"
                         onClick={() => applyRuleAsset(asset)}
                         style={{
-                          padding: "7px 10px",
+                          padding: "6px 9px",
                           borderRadius: 999,
                           border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
                           backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
                           color: active ? "#1d4ed8" : "#0f172a",
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: 800,
                           cursor: "pointer",
                         }}
@@ -3384,30 +3384,30 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
                 <label style={{ display: "grid", gap: 5 }}>
-                  <span style={{ fontSize: 10, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Keyword</span>
+                  <span style={{ fontSize: 9, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Keyword</span>
                   <input
                     placeholder="keyword"
                     value={newRule.keyword}
                     onChange={(e) => setNewRule((prev) => ({ ...prev, keyword: e.target.value }))}
                     style={{
                       width: "100%",
-                      padding: "9px 11px",
-                      borderRadius: 11,
+                      padding: "8px 10px",
+                      borderRadius: 10,
                       border: "1px solid rgba(15,23,42,0.12)",
                       backgroundColor: "#fff",
                     }}
                   />
                 </label>
                 <label style={{ display: "grid", gap: 5 }}>
-                  <span style={{ fontSize: 10, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Asset</span>
+                  <span style={{ fontSize: 9, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Asset</span>
                   <input
                     placeholder="asset"
                     value={newRule.asset}
                     onChange={(e) => setNewRule((prev) => ({ ...prev, asset: e.target.value }))}
                     style={{
                       width: "100%",
-                      padding: "9px 11px",
-                      borderRadius: 11,
+                      padding: "8px 10px",
+                      borderRadius: 10,
                       border: "1px solid rgba(15,23,42,0.12)",
                       backgroundColor: "#fff",
                     }}
@@ -3416,7 +3416,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               </div>
 
               <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>原因模板</div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>原因模板</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {RULE_REASON_TEMPLATES.map((template) => (
                     <button
@@ -3424,12 +3424,12 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                       type="button"
                       onClick={() => setNewRule((prev) => ({ ...prev, reason: template }))}
                       style={{
-                        padding: "7px 10px",
-                        borderRadius: 11,
+                        padding: "6px 9px",
+                        borderRadius: 10,
                         border: "1px solid rgba(15,23,42,0.08)",
                         backgroundColor: "#fff",
                         color: "#334155",
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: 700,
                         cursor: "pointer",
                       }}
@@ -3441,7 +3441,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               </div>
 
               <label style={{ display: "grid", gap: 5 }}>
-                <span style={{ fontSize: 10, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Reason</span>
+                <span style={{ fontSize: 9, color: "#64748b", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>Reason</span>
                 <textarea
                   placeholder="reason"
                   value={newRule.reason}
@@ -3450,8 +3450,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   style={{
                     width: "100%",
                     resize: "vertical",
-                    padding: "9px 11px",
-                    borderRadius: 11,
+                    padding: "8px 10px",
+                    borderRadius: 10,
                     border: "1px solid rgba(15,23,42,0.12)",
                     backgroundColor: "#fff",
                     fontFamily: "inherit",
@@ -3463,8 +3463,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 <button
                   onClick={addRule}
                   style={{
-                    padding: "10px 12px",
-                    borderRadius: 11,
+                    padding: "9px 11px",
+                    borderRadius: 10,
                     border: "1px solid rgba(15,23,42,0.08)",
                     backgroundColor: "#0f172a",
                     color: "#fff",
@@ -3478,8 +3478,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                   type="button"
                   onClick={() => setNewRule(DEFAULT_RULE_FORM)}
                   style={{
-                    padding: "10px 12px",
-                    borderRadius: 11,
+                    padding: "9px 11px",
+                    borderRadius: 10,
                     border: "1px solid rgba(15,23,42,0.08)",
                     backgroundColor: "#fff",
                     color: "#0f172a",
@@ -3502,17 +3502,17 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a" }}>草稿预览</div>
-                  <div style={{ fontSize: 10, color: "#94a3b8" }}>{newRule.keyword && newRule.asset ? "可保存" : "至少需要 keyword 和 asset"}</div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#0f172a" }}>草稿预览</div>
+                  <div style={{ fontSize: 9, color: "#94a3b8" }}>{newRule.keyword && newRule.asset ? "可保存" : "至少需要 keyword 和 asset"}</div>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                   <span style={{ fontWeight: 800, color: "#0f172a" }}>{newRule.keyword || "keyword"}</span>
                   <span style={{ fontSize: 11, color: "#64748b" }}>{newRule.asset || "asset"}</span>
-                  <span style={{ padding: "3px 8px", borderRadius: 999, backgroundColor: "rgba(15,23,42,0.06)", fontSize: 10, fontWeight: 800 }}>
+                  <span style={{ padding: "3px 7px", borderRadius: 999, backgroundColor: "rgba(15,23,42,0.06)", fontSize: 9, fontWeight: 800 }}>
                     {newRule.direction}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5 }}>
+                <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.4 }}>
                   {newRule.reason || "用一句话说明这条规则为什么会触发，以及它该被谁关注。"}
                 </div>
               </div>
