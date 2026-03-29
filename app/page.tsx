@@ -58,7 +58,20 @@ type ActivityEntry = {
   at: number;
 };
 
+type Workspace = "overview" | "sources" | "thresholds" | "rules";
+
 const RULE_RISK_ORDER: RuleRiskFilter[] = ["bullish", "bearish", "neutral"];
+const WORKSPACE_STORAGE_KEY = "investment-admin:active-workspace";
+const WORKSPACE_NAV_ITEMS: Array<{
+  key: Workspace;
+  label: string;
+  description: string;
+}> = [
+  { key: "overview", label: "Overview", description: "状态总览与快捷入口" },
+  { key: "sources", label: "Sources", description: "RSS 源、预设和自定义" },
+  { key: "thresholds", label: "Thresholds", description: "市场阈值与解释层" },
+  { key: "rules", label: "Rules", description: "信号规则与操作台" },
+];
 
 const NEWS_LIMIT_OPTIONS = [50, 100, 200] as const;
 const LAST_REFRESH_STORAGE_KEY = "investment-admin:last-refresh-at";
@@ -368,11 +381,30 @@ function writeStoredThresholdSearch(value: string) {
   window.localStorage.setItem(THRESHOLD_SEARCH_STORAGE_KEY, value);
 }
 
+function readStoredWorkspace() {
+  if (typeof window === "undefined") {
+    return "overview" as Workspace;
+  }
+
+  const raw = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
+  const allowed: Workspace[] = ["overview", "sources", "thresholds", "rules"];
+  return allowed.includes(raw as Workspace) ? (raw as Workspace) : "overview";
+}
+
+function writeStoredWorkspace(value: Workspace) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(WORKSPACE_STORAGE_KEY, value);
+}
+
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [thresholds, setThresholds] = useState<ThresholdItem[]>([]);
   const [settings, setSettings] = useState<DashboardSettings>({ newsLimit: 200 });
+  const [activeWorkspace, setActiveWorkspace] = useState<Workspace>("overview");
   const [newSource, setNewSource] = useState("");
   const [sourceSearch, setSourceSearch] = useState("");
   const [thresholdSearch, setThresholdSearch] = useState("");
@@ -451,6 +483,7 @@ export default function AdminPage() {
     setLastRefreshSummary(readStoredRefreshSummary());
     setActivityLog(readStoredActivityLog());
     setThresholdSearch(readStoredThresholdSearch());
+    setActiveWorkspace(readStoredWorkspace());
     loadConfig();
   }, [loadConfig]);
 
@@ -473,6 +506,10 @@ export default function AdminPage() {
   useEffect(() => {
     writeStoredThresholdSearch(thresholdSearch);
   }, [thresholdSearch]);
+
+  useEffect(() => {
+    writeStoredWorkspace(activeWorkspace);
+  }, [activeWorkspace]);
 
   async function requestAdmin(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
     try {
@@ -836,6 +873,10 @@ export default function AdminPage() {
       ? `新闻 ${lastRefreshSummary.newsCount ?? 0} · 信号 ${lastRefreshSummary.signalCount ?? 0} · 阈值 ${lastRefreshSummary.thresholdCount ?? thresholds.length}`
       : "暂无刷新结果";
   const selectedRuleRate = rules.length > 0 ? Math.round((selectedRuleKeywords.length / rules.length) * 100) : 0;
+  const isOverviewWorkspace = activeWorkspace === "overview";
+  const isSourcesWorkspace = activeWorkspace === "sources";
+  const isThresholdsWorkspace = activeWorkspace === "thresholds";
+  const isRulesWorkspace = activeWorkspace === "rules";
 
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
@@ -891,7 +932,138 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={{ minHeight: "100dvh", padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+    <div
+      style={{
+        minHeight: "100dvh",
+        padding: 16,
+        display: "grid",
+        gridTemplateColumns: "280px minmax(0, 1fr)",
+        gap: 16,
+      }}
+    >
+      <aside
+        style={{
+          position: "sticky",
+          top: 16,
+          alignSelf: "start",
+          maxHeight: "calc(100dvh - 32px)",
+          overflow: "auto",
+          padding: 16,
+          borderRadius: 24,
+          border: "1px solid rgba(15,23,42,0.08)",
+          background: "rgba(255,255,255,0.84)",
+          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+          backdropFilter: "blur(16px)",
+          display: "grid",
+          gap: 16,
+        }}
+      >
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span
+              style={{
+                padding: "5px 10px",
+                borderRadius: 999,
+                backgroundColor: "rgba(15,23,42,0.06)",
+                color: "#0f172a",
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              Admin
+            </span>
+            <span style={{ fontSize: 12, color: "#64748b" }}>Operations console</span>
+          </div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: "#0f172a", lineHeight: 1.08 }}>投资运维控制台</div>
+          <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.55 }}>
+            把来源、阈值、规则和刷新状态拆开看，先看总览，再进入对应工作区。
+          </div>
+        </div>
+
+        <nav style={{ display: "grid", gap: 8 }}>
+          {WORKSPACE_NAV_ITEMS.map((item) => {
+            const active = activeWorkspace === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setActiveWorkspace(item.key)}
+                style={{
+                  textAlign: "left",
+                  padding: "12px 14px",
+                  borderRadius: 18,
+                  border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                  backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                  boxShadow: active ? "0 12px 30px rgba(37,99,235,0.08)" : "0 8px 22px rgba(15,23,42,0.04)",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 800, color: "#0f172a" }}>{item.label}</div>
+                    <div style={{ marginTop: 3, fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>{item.description}</div>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: active ? "#1d4ed8" : "#94a3b8" }}>{active ? "当前" : "进入"}</div>
+                </div>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div
+          style={{
+            padding: 14,
+            borderRadius: 18,
+            border: "1px solid rgba(15,23,42,0.08)",
+            backgroundColor: "rgba(248,250,252,0.92)",
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>当前状态</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ color: "#64748b", fontSize: 12 }}>来源</span>
+              <span style={{ color: "#0f172a", fontWeight: 800, fontSize: 12 }}>{sources.length}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ color: "#64748b", fontSize: 12 }}>阈值</span>
+              <span style={{ color: "#0f172a", fontWeight: 800, fontSize: 12 }}>{thresholds.length}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ color: "#64748b", fontSize: 12 }}>规则</span>
+              <span style={{ color: "#0f172a", fontWeight: 800, fontSize: 12 }}>{rules.length}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ color: "#64748b", fontSize: 12 }}>刷新</span>
+              <span style={{ color: "#0f172a", fontWeight: 800, fontSize: 12 }}>{lastRefreshLabel}</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = config.dashboardUrl;
+          }}
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(15,23,42,0.08)",
+            backgroundColor: "#0f172a",
+            color: "#fff",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          返回 Dashboard
+        </button>
+      </aside>
+
+      <main style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", gap: 16 }}>
       <header
         style={{
           display: "flex",
@@ -972,7 +1144,33 @@ export default function AdminPage() {
 
       <div
         style={{
-          display: "grid",
+          padding: "12px 14px",
+          borderRadius: 16,
+          border: "1px solid rgba(15,23,42,0.08)",
+          backgroundColor: "rgba(255,255,255,0.8)",
+          boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "grid", gap: 2 }}>
+          <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>当前工作区</div>
+          <div style={{ fontSize: 14, color: "#0f172a", fontWeight: 800 }}>
+            {WORKSPACE_NAV_ITEMS.find((item) => item.key === activeWorkspace)?.label} ·{" "}
+            {WORKSPACE_NAV_ITEMS.find((item) => item.key === activeWorkspace)?.description}
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: "#475569" }}>
+          侧栏用于切换模块，主区只保留当前任务所需的信息密度。
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: isOverviewWorkspace ? "grid" : "none",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
           gap: 12,
         }}
@@ -1008,7 +1206,7 @@ export default function AdminPage() {
 
       <div
         style={{
-          display: "grid",
+          display: isOverviewWorkspace ? "grid" : "none",
           gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
           gap: 12,
         }}
@@ -1037,12 +1235,12 @@ export default function AdminPage() {
 
       <section
         style={{
+          display: isOverviewWorkspace ? "grid" : "none",
           padding: 16,
           borderRadius: 18,
           border: "1px solid rgba(15,23,42,0.08)",
           backgroundColor: "rgba(255,255,255,0.78)",
           boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
-          display: "grid",
           gap: 12,
         }}
       >
@@ -1086,7 +1284,7 @@ export default function AdminPage() {
 
       <div
         style={{
-          display: "flex",
+          display: isOverviewWorkspace ? "flex" : "none",
           alignItems: "center",
           gap: 10,
           padding: "12px 14px",
@@ -1112,12 +1310,12 @@ export default function AdminPage() {
 
       <section
         style={{
+          display: isThresholdsWorkspace || isOverviewWorkspace ? "grid" : "none",
           padding: 16,
           borderRadius: 18,
           border: "1px solid rgba(15,23,42,0.08)",
           backgroundColor: "rgba(255,255,255,0.82)",
           boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
-          display: "grid",
           gap: 14,
         }}
       >
@@ -1492,6 +1690,7 @@ export default function AdminPage() {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", gap: 16, flex: 1 }}>
         <section
           style={{
+            display: isSourcesWorkspace || isOverviewWorkspace ? "grid" : "none",
             minWidth: 0,
             border: "1px solid rgba(15,23,42,0.08)",
             borderRadius: 24,
@@ -1652,6 +1851,7 @@ export default function AdminPage() {
 
         <section
           style={{
+            display: isRulesWorkspace || isOverviewWorkspace ? "flex" : "none",
             minWidth: 0,
             border: "1px solid rgba(15,23,42,0.08)",
             borderRadius: 24,
@@ -1659,7 +1859,6 @@ export default function AdminPage() {
             boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
             padding: 18,
             backdropFilter: "blur(16px)",
-            display: "flex",
             flexDirection: "column",
             minHeight: 0,
           }}
@@ -2235,6 +2434,8 @@ export default function AdminPage() {
           </div>
         </section>
       </div>
+        </div>
+      </main>
     </div>
   );
 }
