@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [newSource, setNewSource] = useState("");
+  const [sourceSearch, setSourceSearch] = useState("");
   const [newRule, setNewRule] = useState<Rule>({ keyword: "", asset: "", direction: "neutral", reason: "" });
   const [message, setMessage] = useState("");
 
@@ -162,6 +163,14 @@ export default function AdminPage() {
   const chinaEnabled = DEFAULT_SOURCE_GROUPS.china.filter((preset) => sources.includes(preset.url));
   const globalEnabled = DEFAULT_SOURCE_GROUPS.global.filter((preset) => sources.includes(preset.url));
   const customSources = sources.filter((url) => !SOURCE_PRESETS.some((preset) => preset.url === url));
+  const sourceSearchTerm = sourceSearch.trim().toLowerCase();
+  const filteredSources = sources.filter((source) => {
+    if (!sourceSearchTerm) {
+      return true;
+    }
+
+    return `${getSourceLabel(source)} ${source}`.toLowerCase().includes(sourceSearchTerm);
+  });
 
   return (
     <div style={{ minHeight: "100dvh", padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -284,7 +293,7 @@ export default function AdminPage() {
             <div>
               <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>RSS 数据源</h2>
               <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                已启用的多个 RSS 源会由 API 同时聚合成一个新闻流。
+                已启用的多个 RSS 源会由 API 同时聚合成一个新闻流，支持搜索、分组和快捷启用。
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -322,8 +331,21 @@ export default function AdminPage() {
           <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>已启用来源</div>
+              <input
+                value={sourceSearch}
+                onChange={(e) => setSourceSearch(e.target.value)}
+                placeholder="搜索已启用来源"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                  fontSize: 12,
+                }}
+              />
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {sources.map((source) => {
+                {filteredSources.map((source) => {
                   const isPreset = SOURCE_PRESETS.some((preset) => preset.url === source);
                   return (
                     <div
@@ -359,6 +381,9 @@ export default function AdminPage() {
                     </div>
                   );
                 })}
+                {filteredSources.length === 0 && sources.length > 0 && (
+                  <div style={{ color: "#64748b", fontSize: 12 }}>没有匹配的来源。</div>
+                )}
                 {sources.length === 0 && <div style={{ color: "#64748b", fontSize: 12 }}>暂无来源，先启用默认组或手动添加。</div>}
               </div>
             </div>
