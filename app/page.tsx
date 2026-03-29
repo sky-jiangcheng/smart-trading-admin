@@ -30,6 +30,19 @@ const DEFAULT_SOURCE_GROUPS = {
   global: SOURCE_PRESETS.filter((preset) => preset.group === "global"),
 };
 
+function getSourceLabel(url: string) {
+  const preset = SOURCE_PRESETS.find((item) => item.url === url);
+  if (preset) {
+    return preset.label;
+  }
+
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
@@ -146,160 +159,508 @@ export default function AdminPage() {
     setMessage(`刷新完成：新闻 ${newsCount ?? 0}，信号 ${signalCount ?? 0}`);
   }
 
-  return (
-    <div style={{ padding: 12, fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif" }}>
-      <h1>管理台</h1>
-      <button
-        style={{ marginBottom: 16, padding: "6px 12px", borderRadius: 6, border: "1px solid #999" }}
-        onClick={() => (window.location.href = config.dashboardUrl)}
-      >
-        返回 Dashboard
-      </button>
-      <div style={{ marginBottom: 12, color: "#333" }}>{message}</div>
-      <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-        <section style={{ flex: 1, minWidth: 280 }}>
-          <h2 style={{ marginBottom: 6 }}>RSS 数据源</h2>
-          <p style={{ marginTop: 0, color: "#666", fontSize: 13, lineHeight: 1.5 }}>
-            已启用的多个 RSS 源会由 API 同时聚合成一个新闻流，不再只取单一来源。
-          </p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            <button onClick={() => addPresetGroup("china")} style={{ padding: "6px 10px" }}>
-              一键启用中国默认源
-            </button>
-            <button onClick={() => addPresetGroup("global")} style={{ padding: "6px 10px" }}>
-              一键启用国际默认源
-            </button>
-          </div>
-          <div style={{ marginBottom: 10, fontSize: 12, color: "#666" }}>
-            当前已启用 {sources.length} 个来源
-          </div>
-          <ul>
-            {sources.map((source) => (
-              <li key={source} style={{ marginBottom: 6 }}>
-                <span>{source}</span>
-                <button style={{ marginLeft: 8 }} onClick={() => removeSource(source)}>
-                  删除
-                </button>
-              </li>
-            ))}
-          </ul>
-          <input
-            placeholder="新增 RSS URL"
-            value={newSource}
-            onChange={(e) => setNewSource(e.target.value)}
-            style={{ width: "100%", padding: 6, marginBottom: 6 }}
-          />
-          <button onClick={addSource}>添加数据源</button>
-          <div style={{ marginTop: 16, display: "grid", gap: 16 }}>
-            <div>
-              <div style={{ marginBottom: 8, fontSize: 13, color: "#333", fontWeight: 600 }}>推荐中国来源</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {DEFAULT_SOURCE_GROUPS.china.map((preset) => {
-                  const alreadyAdded = sources.includes(preset.url);
+  const chinaEnabled = DEFAULT_SOURCE_GROUPS.china.filter((preset) => sources.includes(preset.url));
+  const globalEnabled = DEFAULT_SOURCE_GROUPS.global.filter((preset) => sources.includes(preset.url));
+  const customSources = sources.filter((url) => !SOURCE_PRESETS.some((preset) => preset.url === url));
 
-                  return (
-                    <button
-                      key={preset.url}
-                      type="button"
-                      disabled={alreadyAdded}
-                    onClick={() => addPresetSourceByUrl(preset.url)}
-                      style={{
-                        textAlign: "left",
-                        padding: "8px 10px",
-                        borderRadius: 6,
-                        border: "1px solid #ccc",
-                        backgroundColor: alreadyAdded ? "#f3f3f3" : "#fff",
-                        color: alreadyAdded ? "#888" : "#111",
-                        cursor: alreadyAdded ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>{preset.label}</div>
-                      <div style={{ fontSize: 12, marginTop: 2, wordBreak: "break-all" }}>{preset.url}</div>
-                    </button>
-                  );
-                })}
+  return (
+    <div style={{ minHeight: "100dvh", padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+          padding: "18px 20px",
+          border: "1px solid rgba(15,23,42,0.08)",
+          borderRadius: 24,
+          background: "rgba(255,255,255,0.82)",
+          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+          backdropFilter: "blur(16px)",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span
+              style={{
+                padding: "5px 10px",
+                borderRadius: 999,
+                backgroundColor: "rgba(15,23,42,0.06)",
+                color: "#0f172a",
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              管理台
+            </span>
+            <span style={{ fontSize: 12, color: "#64748b" }}>Investment API 控制中心</span>
+          </div>
+          <h1 style={{ margin: 0, fontSize: 28, lineHeight: 1.05, letterSpacing: "-0.03em" }}>
+            数据源与信号编排
+          </h1>
+          <div style={{ fontSize: 13, color: "#475569", maxWidth: 820, lineHeight: 1.5 }}>
+            在这里管理多个 RSS 源、快速启用中外默认来源，并把新闻刷新为可直接消费的信号流。
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            style={{
+              padding: "10px 14px",
+              borderRadius: 14,
+              border: "1px solid rgba(15,23,42,0.08)",
+              backgroundColor: "#0f172a",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+            onClick={() => (window.location.href = config.dashboardUrl)}
+          >
+            返回 Dashboard
+          </button>
+          <button
+            style={{
+              padding: "10px 14px",
+              borderRadius: 14,
+              border: "1px solid rgba(15,23,42,0.08)",
+              backgroundColor: "#ffffff",
+              color: "#0f172a",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+            onClick={refreshNews}
+          >
+            刷新新闻 + 信号
+          </button>
+        </div>
+      </header>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gap: 12,
+        }}
+      >
+        {[
+          { label: "总来源", value: sources.length },
+          { label: "中国默认", value: chinaEnabled.length },
+          { label: "国际默认", value: globalEnabled.length },
+          { label: "自定义", value: customSources.length },
+        ].map((item) => (
+          <div
+            key={item.label}
+            style={{
+              padding: 16,
+              borderRadius: 18,
+              border: "1px solid rgba(15,23,42,0.08)",
+              backgroundColor: "rgba(255,255,255,0.78)",
+              boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            }}
+          >
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>{item.label}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>{item.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginBottom: -4, color: "#475569", fontSize: 12 }}>{message}</div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", gap: 16, flex: 1 }}>
+        <section
+          style={{
+            minWidth: 0,
+            border: "1px solid rgba(15,23,42,0.08)",
+            borderRadius: 24,
+            background: "rgba(255,255,255,0.82)",
+            boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+            padding: 18,
+            backdropFilter: "blur(16px)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>RSS 数据源</h2>
+              <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+                已启用的多个 RSS 源会由 API 同时聚合成一个新闻流。
               </div>
             </div>
-            <div>
-              <div style={{ marginBottom: 8, fontSize: 13, color: "#333", fontWeight: 600 }}>推荐国际来源</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {DEFAULT_SOURCE_GROUPS.global.map((preset) => {
-                  const alreadyAdded = sources.includes(preset.url);
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={() => addPresetGroup("china")}
+                style={{
+                  padding: "9px 12px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#0f172a",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                一键启用中国默认源
+              </button>
+              <button
+                onClick={() => addPresetGroup("global")}
+                style={{
+                  padding: "9px 12px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#ffffff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                一键启用国际默认源
+              </button>
+            </div>
+          </div>
 
+          <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>已启用来源</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {sources.map((source) => {
+                  const isPreset = SOURCE_PRESETS.some((preset) => preset.url === source);
                   return (
-                    <button
-                      key={preset.url}
-                      type="button"
-                      disabled={alreadyAdded}
-                    onClick={() => addPresetSourceByUrl(preset.url)}
+                    <div
+                      key={source}
                       style={{
-                        textAlign: "left",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
                         padding: "8px 10px",
-                        borderRadius: 6,
-                        border: "1px solid #ccc",
-                        backgroundColor: alreadyAdded ? "#f3f3f3" : "#fff",
-                        color: alreadyAdded ? "#888" : "#111",
-                        cursor: alreadyAdded ? "not-allowed" : "pointer",
+                        borderRadius: 999,
+                        border: "1px solid rgba(15,23,42,0.08)",
+                        backgroundColor: isPreset ? "rgba(15,23,42,0.05)" : "rgba(239,246,255,0.9)",
+                        color: "#0f172a",
+                        fontSize: 12,
                       }}
                     >
-                      <div style={{ fontWeight: 600 }}>{preset.label}</div>
-                      <div style={{ fontSize: 12, marginTop: 2, wordBreak: "break-all" }}>{preset.url}</div>
-                    </button>
+                      <span style={{ fontWeight: 700 }}>{getSourceLabel(source)}</span>
+                      <span style={{ color: "#64748b", maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {source}
+                      </span>
+                      <button
+                        onClick={() => removeSource(source)}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: "#ef4444",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        删除
+                      </button>
+                    </div>
                   );
                 })}
+                {sources.length === 0 && <div style={{ color: "#64748b", fontSize: 12 }}>暂无来源，先启用默认组或手动添加。</div>}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 10,
+                padding: 14,
+                borderRadius: 18,
+                backgroundColor: "rgba(248,250,252,0.9)",
+                border: "1px solid rgba(15,23,42,0.06)",
+              }}
+            >
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>手动添加源</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <input
+                    placeholder="新增 RSS URL"
+                    value={newSource}
+                    onChange={(e) => setNewSource(e.target.value)}
+                    style={{
+                      flex: "1 1 280px",
+                      minWidth: 0,
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(15,23,42,0.12)",
+                      backgroundColor: "#fff",
+                    }}
+                  />
+                  <button
+                    onClick={addSource}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      backgroundColor: "#0f172a",
+                      color: "#fff",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    添加
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>推荐中国来源</div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {DEFAULT_SOURCE_GROUPS.china.map((preset) => {
+                    const alreadyAdded = sources.includes(preset.url);
+                    return (
+                      <button
+                        key={preset.url}
+                        type="button"
+                        disabled={alreadyAdded}
+                        onClick={() => addPresetSourceByUrl(preset.url)}
+                        style={{
+                          textAlign: "left",
+                          padding: "12px 14px",
+                          borderRadius: 16,
+                          border: "1px solid rgba(15,23,42,0.08)",
+                          backgroundColor: alreadyAdded ? "rgba(15,23,42,0.04)" : "#fff",
+                          color: alreadyAdded ? "#94a3b8" : "#0f172a",
+                          cursor: alreadyAdded ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                          <div>
+                            <div style={{ fontWeight: 700 }}>{preset.label}</div>
+                            <div style={{ marginTop: 3, fontSize: 11, color: "#64748b", wordBreak: "break-all" }}>
+                              {preset.url}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              backgroundColor: alreadyAdded ? "rgba(15,23,42,0.08)" : "rgba(15,23,42,0.06)",
+                            }}
+                          >
+                            {alreadyAdded ? "已启用" : "添加"}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>推荐国际来源</div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {DEFAULT_SOURCE_GROUPS.global.map((preset) => {
+                    const alreadyAdded = sources.includes(preset.url);
+                    return (
+                      <button
+                        key={preset.url}
+                        type="button"
+                        disabled={alreadyAdded}
+                        onClick={() => addPresetSourceByUrl(preset.url)}
+                        style={{
+                          textAlign: "left",
+                          padding: "12px 14px",
+                          borderRadius: 16,
+                          border: "1px solid rgba(15,23,42,0.08)",
+                          backgroundColor: alreadyAdded ? "rgba(15,23,42,0.04)" : "#fff",
+                          color: alreadyAdded ? "#94a3b8" : "#0f172a",
+                          cursor: alreadyAdded ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                          <div>
+                            <div style={{ fontWeight: 700 }}>{preset.label}</div>
+                            <div style={{ marginTop: 3, fontSize: 11, color: "#64748b", wordBreak: "break-all" }}>
+                              {preset.url}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              backgroundColor: alreadyAdded ? "rgba(15,23,42,0.08)" : "rgba(15,23,42,0.06)",
+                            }}
+                          >
+                            {alreadyAdded ? "已启用" : "添加"}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section style={{ flex: 1, minWidth: 280 }}>
-          <h2>信号规则</h2>
-          <ul>
-            {rules.map((rule) => (
-              <li key={rule.keyword} style={{ marginBottom: 6 }}>
-                <strong>{rule.keyword}</strong> =&gt; {rule.asset} ({rule.direction}) {rule.reason && `- ${rule.reason}`}
-                <button style={{ marginLeft: 8 }} onClick={() => removeRule(rule.keyword)}>
-                  删除
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <input
-              placeholder="keyword"
-              value={newRule.keyword}
-              onChange={(e) => setNewRule((prev) => ({ ...prev, keyword: e.target.value }))}
-              style={{ width: "100%", padding: 6 }}
-            />
-            <input
-              placeholder="asset"
-              value={newRule.asset}
-              onChange={(e) => setNewRule((prev) => ({ ...prev, asset: e.target.value }))}
-              style={{ width: "100%", padding: 6 }}
-            />
-            <select
-              value={newRule.direction}
-              onChange={(e) => setNewRule((prev) => ({ ...prev, direction: e.target.value as Rule["direction"] }))}
-              style={{ width: "100%", padding: 6 }}
+        <section
+          style={{
+            minWidth: 0,
+            border: "1px solid rgba(15,23,42,0.08)",
+            borderRadius: 24,
+            background: "rgba(255,255,255,0.82)",
+            boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+            padding: 18,
+            backdropFilter: "blur(16px)",
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>信号规则</h2>
+              <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+                规则会在刷新新闻后自动触发，可按 keyword/asset 进行快速编排。
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: "#64748b" }}>{rules.length} rules</div>
+          </div>
+
+          <div style={{ marginTop: 16, display: "grid", gap: 12, flex: 1, minHeight: 0 }}>
+            <div style={{ display: "grid", gap: 10 }}>
+              {rules.map((rule) => (
+                <div
+                  key={rule.keyword}
+                  style={{
+                    padding: 14,
+                    borderRadius: 18,
+                    border: "1px solid rgba(15,23,42,0.08)",
+                    backgroundColor: "#fff",
+                    boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: "#0f172a" }}>{rule.keyword}</div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: "#475569" }}>
+                        {rule.asset} · {rule.direction}
+                      </div>
+                    </div>
+                    <button
+                      style={{
+                        border: "none",
+                        background: "rgba(239,68,68,0.08)",
+                        color: "#dc2626",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => removeRule(rule.keyword)}
+                    >
+                      删除
+                    </button>
+                  </div>
+                  {rule.reason && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>{rule.reason}</div>
+                  )}
+                </div>
+              ))}
+              {rules.length === 0 && (
+                <div
+                  style={{
+                    padding: 16,
+                    textAlign: "center",
+                    color: "#64748b",
+                    border: "1px dashed rgba(15,23,42,0.18)",
+                    borderRadius: 18,
+                    backgroundColor: "rgba(248,250,252,0.9)",
+                  }}
+                >
+                  暂无规则，先添加一条来开始自动生成信号。
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 10,
+                padding: 14,
+                borderRadius: 18,
+                backgroundColor: "rgba(248,250,252,0.9)",
+                border: "1px solid rgba(15,23,42,0.06)",
+              }}
             >
-              <option value="bullish">bullish</option>
-              <option value="bearish">bearish</option>
-              <option value="neutral">neutral</option>
-            </select>
-            <input
-              placeholder="reason"
-              value={newRule.reason}
-              onChange={(e) => setNewRule((prev) => ({ ...prev, reason: e.target.value }))}
-              style={{ width: "100%", padding: 6 }}
-            />
-            <button onClick={addRule}>添加/更新规则</button>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>编辑规则</div>
+              <input
+                placeholder="keyword"
+                value={newRule.keyword}
+                onChange={(e) => setNewRule((prev) => ({ ...prev, keyword: e.target.value }))}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <input
+                placeholder="asset"
+                value={newRule.asset}
+                onChange={(e) => setNewRule((prev) => ({ ...prev, asset: e.target.value }))}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <select
+                value={newRule.direction}
+                onChange={(e) => setNewRule((prev) => ({ ...prev, direction: e.target.value as Rule["direction"] }))}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              >
+                <option value="bullish">bullish</option>
+                <option value="bearish">bearish</option>
+                <option value="neutral">neutral</option>
+              </select>
+              <input
+                placeholder="reason"
+                value={newRule.reason}
+                onChange={(e) => setNewRule((prev) => ({ ...prev, reason: e.target.value }))}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <button
+                onClick={addRule}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#0f172a",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                添加 / 更新规则
+              </button>
+            </div>
           </div>
         </section>
       </div>
-
-      <button style={{ marginTop: 16, padding: "8px 14px" }} onClick={refreshNews}>
-        刷新新闻+信号
-      </button>
     </div>
   );
 }
