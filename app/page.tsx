@@ -70,6 +70,7 @@ export default function AdminPage() {
   const [sourceSearch, setSourceSearch] = useState("");
   const [newRule, setNewRule] = useState<Rule>({ keyword: "", asset: "", direction: "neutral", reason: "" });
   const [message, setMessage] = useState("");
+  const [isRefreshingNews, setIsRefreshingNews] = useState(false);
 
   const auth = btoa(`${process.env.NEXT_PUBLIC_ADMIN_USER || "admin"}:${process.env.NEXT_PUBLIC_ADMIN_PASS || "password"}`);
 
@@ -179,7 +180,14 @@ export default function AdminPage() {
   }
 
   async function refreshNews() {
+    setIsRefreshingNews(true);
     const res = await requestAdmin("/admin/refresh", "POST");
+    setIsRefreshingNews(false);
+
+    if (!res || Object.keys(res).length === 0) {
+      return;
+    }
+
     const newsCount = res.newsCount as number | undefined;
     const signalCount = res.signalCount as number | undefined;
     setMessage(`刷新完成：新闻 ${newsCount ?? 0}，信号 ${signalCount ?? 0}`);
@@ -321,18 +329,20 @@ export default function AdminPage() {
             返回 Dashboard
           </button>
           <button
+            type="button"
+            disabled={isRefreshingNews}
             style={{
               padding: "10px 14px",
               borderRadius: 14,
               border: "1px solid rgba(15,23,42,0.08)",
-              backgroundColor: "#ffffff",
-              color: "#0f172a",
+              backgroundColor: isRefreshingNews ? "rgba(15,23,42,0.06)" : "#ffffff",
+              color: isRefreshingNews ? "#64748b" : "#0f172a",
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: isRefreshingNews ? "wait" : "pointer",
             }}
             onClick={refreshNews}
           >
-            刷新新闻 + 信号
+            {isRefreshingNews ? "刷新中..." : "刷新新闻 + 信号"}
           </button>
         </div>
       </header>
