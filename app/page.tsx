@@ -34,12 +34,16 @@ type ThresholdItem = {
   direction: ThresholdDirection;
   unit: string;
   note: string;
+  marketSymbol: string;
+  priority: "P0" | "P1" | "P2";
+  tags: string[];
   updatedAt: string;
 };
 
 type RefreshSummary = {
   newsCount?: number;
   signalCount?: number;
+  thresholdCount?: number;
 };
 
 type RuleRiskFilter = "all" | "bullish" | "bearish" | "neutral";
@@ -71,6 +75,12 @@ const THRESHOLD_CATEGORY_LABELS: Record<ThresholdCategory, string> = {
   futures: "期货",
   crypto: "加密货币",
   macro: "宏观",
+};
+
+const THRESHOLD_PRIORITY_LABELS: Record<ThresholdItem["priority"], string> = {
+  P0: "核心",
+  P1: "重点",
+  P2: "观察",
 };
 
 const THRESHOLD_DIRECTION_LABELS: Record<ThresholdDirection, string> = {
@@ -113,6 +123,9 @@ const DEFAULT_THRESHOLD_FORM: ThresholdItem = {
   direction: "above",
   unit: "USD",
   note: "",
+  marketSymbol: "",
+  priority: "P1",
+  tags: [],
   updatedAt: "",
 };
 
@@ -579,10 +592,12 @@ export default function AdminPage() {
       ...newThreshold,
       symbol: newThreshold.symbol.trim().toUpperCase(),
       name: newThreshold.name.trim(),
+      marketSymbol: (newThreshold.marketSymbol.trim() || newThreshold.symbol.trim()).toUpperCase(),
       unit: newThreshold.unit.trim() || "USD",
       note: newThreshold.note.trim(),
       currentValue: Number(newThreshold.currentValue),
       thresholdValue: Number(newThreshold.thresholdValue),
+      tags: newThreshold.tags,
       updatedAt: new Date().toISOString(),
     };
 
@@ -722,18 +737,19 @@ export default function AdminPage() {
 
     const newsCount = res.newsCount as number | undefined;
     const signalCount = res.signalCount as number | undefined;
+    const thresholdCount = res.thresholdCount as number | undefined;
     const refreshedAt = Date.now();
-    const summary = { newsCount, signalCount };
+    const summary = { newsCount, signalCount, thresholdCount };
     setLastRefreshAt(refreshedAt);
     setLastRefreshSummary(summary);
     writeStoredTimestamp(LAST_REFRESH_STORAGE_KEY, refreshedAt);
     writeStoredRefreshSummary(summary);
     appendActivity({
       title: "刷新新闻与信号",
-      detail: `新闻 ${newsCount ?? 0} · 信号 ${signalCount ?? 0}`,
+      detail: `新闻 ${newsCount ?? 0} · 信号 ${signalCount ?? 0} · 阈值 ${thresholdCount ?? thresholds.length}`,
       level: "success",
     });
-    setMessage(`刷新完成：新闻 ${newsCount ?? 0}，信号 ${signalCount ?? 0}`);
+    setMessage(`刷新完成：新闻 ${newsCount ?? 0}，信号 ${signalCount ?? 0}，阈值 ${thresholdCount ?? thresholds.length}`);
   }
 
   async function updateNewsLimit(newsLimit: number) {
@@ -774,7 +790,7 @@ export default function AdminPage() {
       return true;
     }
 
-    const haystack = `${item.symbol} ${item.name} ${item.category} ${item.note} ${item.direction} ${item.unit}`.toLowerCase();
+    const haystack = `${item.symbol} ${item.name} ${item.category} ${item.note} ${item.direction} ${item.unit} ${item.marketSymbol} ${item.priority} ${item.tags.join(" ")}`.toLowerCase();
     return haystack.includes(thresholdSearchTerm);
   });
   const thresholdTriggeredCount = thresholds.filter((item) => getThresholdStatus(item).isTriggered).length;
@@ -810,8 +826,8 @@ export default function AdminPage() {
   const lastRefreshLabel = formatRelativeTime(lastRefreshAt);
   const lastSyncLabel = formatRelativeTime(lastConfigSyncAt);
   const lastRefreshDetail =
-    lastRefreshSummary?.newsCount !== undefined || lastRefreshSummary?.signalCount !== undefined
-      ? `新闻 ${lastRefreshSummary.newsCount ?? 0} · 信号 ${lastRefreshSummary.signalCount ?? 0}`
+    lastRefreshSummary?.newsCount !== undefined || lastRefreshSummary?.signalCount !== undefined || lastRefreshSummary?.thresholdCount !== undefined
+      ? `新闻 ${lastRefreshSummary.newsCount ?? 0} · 信号 ${lastRefreshSummary.signalCount ?? 0} · 阈值 ${lastRefreshSummary.thresholdCount ?? thresholds.length}`
       : "暂无刷新结果";
   const selectedRuleRate = rules.length > 0 ? Math.round((selectedRuleKeywords.length / rules.length) * 100) : 0;
 
@@ -1179,9 +1195,38 @@ export default function AdminPage() {
                   border: "1px solid rgba(15,23,42,0.12)",
                   backgroundColor: "#fff",
                 }}
-              >
+                >
                 <option value="above">上破阈值</option>
                 <option value="below">下破阈值</option>
+              </select>
+              <input
+                value={newThreshold.marketSymbol}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, marketSymbol: e.target.value }))}
+                placeholder="Market symbol"
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <select
+                value={newThreshold.priority}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, priority: e.target.value as ThresholdItem["priority"] }))}
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              >
+                {Object.entries(THRESHOLD_PRIORITY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
               <input
                 value={newThreshold.currentValue}
@@ -1215,6 +1260,27 @@ export default function AdminPage() {
                 value={newThreshold.unit}
                 onChange={(e) => setNewThreshold((current) => ({ ...current, unit: e.target.value }))}
                 placeholder="Unit"
+                style={{
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <input
+                value={newThreshold.tags.join(", ")}
+                onChange={(e) =>
+                  setNewThreshold((current) => ({
+                    ...current,
+                    tags: e.target.value
+                      .split(",")
+                      .map((tag) => tag.trim())
+                      .filter((tag) => tag.length > 0)
+                      .slice(0, 6),
+                  }))
+                }
+                placeholder="Tags, comma separated"
                 style={{
                   minWidth: 0,
                   padding: "10px 12px",
@@ -1319,9 +1385,22 @@ export default function AdminPage() {
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                           <span style={{ fontWeight: 800, color: "#0f172a" }}>{item.symbol}</span>
                           <span style={{ fontSize: 11, color }}>{item.name}</span>
+                          <span
+                            style={{
+                              padding: "3px 8px",
+                              borderRadius: 999,
+                              backgroundColor: "rgba(15,23,42,0.06)",
+                              color: "#475569",
+                              fontSize: 10,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {THRESHOLD_PRIORITY_LABELS[item.priority]}
+                          </span>
                         </div>
                         <div style={{ marginTop: 3, fontSize: 11, color: "#64748b" }}>
                           {THRESHOLD_CATEGORY_LABELS[item.category]} · {THRESHOLD_DIRECTION_LABELS[item.direction]}
+                          {item.marketSymbol ? ` · ${item.marketSymbol}` : ""}
                         </div>
                       </div>
                       <button
@@ -1358,6 +1437,25 @@ export default function AdminPage() {
                         {status.distance >= 0 ? "+" : ""}
                         {formatThresholdNumber(status.distance)} ({status.percent.toFixed(1)}%)
                       </span>
+                      {item.tags.length > 0 && (
+                        <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+                          {item.tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              style={{
+                                padding: "3px 8px",
+                                borderRadius: 999,
+                                backgroundColor: "rgba(59,130,246,0.08)",
+                                color: "#1d4ed8",
+                                fontSize: 10,
+                                fontWeight: 800,
+                              }}
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.45 }}>{item.note}</div>
                     <div style={{ fontSize: 10, color: "#94a3b8" }}>更新于 {formatRelativeTime(Date.parse(item.updatedAt))}</div>
