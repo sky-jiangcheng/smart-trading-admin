@@ -913,6 +913,19 @@ export default function AdminPage() {
     () => WORKSPACE_NAV_ITEMS.find((item) => item.key === activeWorkspace) ?? WORKSPACE_NAV_ITEMS[0],
     [activeWorkspace],
   );
+  const riskOverview = useMemo(
+    () => [
+      { label: "高关注", value: rules.filter((rule) => rule.direction === "bullish").length, tone: "#166534", background: "rgba(34,197,94,0.12)" },
+      { label: "风险", value: rules.filter((rule) => rule.direction === "bearish").length, tone: "#b91c1c", background: "rgba(239,68,68,0.12)" },
+      { label: "观察", value: rules.filter((rule) => rule.direction === "neutral").length, tone: "#92400e", background: "rgba(245,158,11,0.12)" },
+    ],
+    [rules],
+  );
+  const recentActivity = useMemo(() => activityLog.slice(0, 4), [activityLog]);
+  const workspaceBreadcrumb = useMemo(
+    () => ["Admin", activeWorkspaceMeta.label].join(" / "),
+    [activeWorkspaceMeta.label],
+  );
 
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
@@ -1203,6 +1216,148 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <section
+        style={{
+          padding: 16,
+          borderRadius: 20,
+          border: "1px solid rgba(15,23,42,0.08)",
+          backgroundColor: "rgba(255,255,255,0.84)",
+          boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "grid", gap: 3 }}>
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{workspaceBreadcrumb}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>{activeWorkspaceMeta.label}</div>
+            <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>{activeWorkspaceMeta.description}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            {activeWorkspace === "overview" && (
+              <>
+                <button
+                  type="button"
+                  onClick={refreshNews}
+                  disabled={isRefreshingNews}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(15,23,42,0.08)",
+                    backgroundColor: "#0f172a",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: isRefreshingNews ? "wait" : "pointer",
+                  }}
+                >
+                  刷新新闻 + 信号
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveWorkspace("sources")}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(15,23,42,0.08)",
+                    backgroundColor: "#fff",
+                    color: "#0f172a",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  管理来源
+                </button>
+              </>
+            )}
+            {activeWorkspace === "sources" && (
+              <button
+                type="button"
+                onClick={() => setActiveWorkspace("settings")}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#fff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                先调展示设置
+              </button>
+            )}
+            {activeWorkspace === "thresholds" && (
+              <button
+                type="button"
+                onClick={() => setActiveWorkspace("rules")}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#fff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                去看规则
+              </button>
+            )}
+            {activeWorkspace === "rules" && (
+              <button
+                type="button"
+                onClick={resetRuleView}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#fff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                重置规则视图
+              </button>
+            )}
+            {activeWorkspace === "activity" && (
+              <button
+                type="button"
+                onClick={() => setActiveWorkspace("overview")}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#fff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                返回总览
+              </button>
+            )}
+            {activeWorkspace === "settings" && (
+              <button
+                type="button"
+                onClick={() => updateNewsLimit(settings.newsLimit)}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#fff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                重新同步设置
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
       <div
         style={{
           display: isOverviewWorkspace ? "grid" : "none",
@@ -1293,6 +1448,111 @@ export default function AdminPage() {
         />
         <span>{message || "配置已就绪，继续调整来源或新闻展示上限。"}</span>
       </div>
+
+      <section
+        style={{
+          display: isOverviewWorkspace ? "grid" : "none",
+          gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr)",
+          gap: 16,
+        }}
+      >
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 18,
+            border: "1px solid rgba(15,23,42,0.08)",
+            backgroundColor: "rgba(255,255,255,0.82)",
+            boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>风险总览</div>
+              <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>先看规则结构，再进入具体工作区</div>
+            </div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>规则 {rules.length} · 阈值 {thresholds.length}</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+            {riskOverview.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => setActiveWorkspace("rules")}
+                style={{
+                  padding: 14,
+                  borderRadius: 16,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "#fff",
+                  textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                <div style={{ marginTop: 6, fontSize: 24, color: item.tone, fontWeight: 800 }}>{item.value}</div>
+                <div style={{ marginTop: 8, display: "inline-flex", padding: "4px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, color: item.tone, backgroundColor: item.background }}>
+                  打开规则工作区
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 18,
+            border: "1px solid rgba(15,23,42,0.08)",
+            backgroundColor: "rgba(255,255,255,0.82)",
+            boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>最近变更</div>
+              <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>最近 4 条操作记录</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveWorkspace("activity")}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 12,
+                border: "1px solid rgba(15,23,42,0.08)",
+                backgroundColor: "#fff",
+                color: "#0f172a",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              查看全部
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            {recentActivity.length === 0 ? (
+              <div style={{ padding: 14, borderRadius: 14, border: "1px dashed rgba(15,23,42,0.12)", backgroundColor: "rgba(248,250,252,0.8)", color: "#64748b", fontSize: 12 }}>
+                暂无操作记录，完成一次配置同步后会出现在这里。
+              </div>
+            ) : (
+              recentActivity.map((entry) => (
+                <div key={entry.id} style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, color: "#0f172a" }}>{entry.title}</div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: "#475569" }}>{entry.detail}</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>{formatRelativeTime(entry.at)}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
 
       <section
         style={{
