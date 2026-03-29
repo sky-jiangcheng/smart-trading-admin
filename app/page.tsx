@@ -59,7 +59,7 @@ type ActivityEntry = {
   at: number;
 };
 
-type Workspace = "overview" | "sources" | "thresholds" | "rules";
+type Workspace = "overview" | "sources" | "thresholds" | "rules" | "activity" | "settings";
 
 const RULE_RISK_ORDER: RuleRiskFilter[] = ["bullish", "bearish", "neutral"];
 const WORKSPACE_STORAGE_KEY = "investment-admin:active-workspace";
@@ -72,6 +72,8 @@ const WORKSPACE_NAV_ITEMS: Array<{
   { key: "sources", label: "Sources", description: "RSS 源、预设和自定义" },
   { key: "thresholds", label: "Thresholds", description: "市场阈值与解释层" },
   { key: "rules", label: "Rules", description: "信号规则与操作台" },
+  { key: "activity", label: "Activity", description: "最近操作与审计痕迹" },
+  { key: "settings", label: "Settings", description: "展示上限与全局参数" },
 ];
 
 const NEWS_LIMIT_OPTIONS = [50, 100, 200] as const;
@@ -388,7 +390,7 @@ function readStoredWorkspace() {
   }
 
   const raw = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
-  const allowed: Workspace[] = ["overview", "sources", "thresholds", "rules"];
+  const allowed: Workspace[] = ["overview", "sources", "thresholds", "rules", "activity", "settings"];
   return allowed.includes(raw as Workspace) ? (raw as Workspace) : "overview";
 }
 
@@ -905,6 +907,8 @@ export default function AdminPage() {
   const isSourcesWorkspace = activeWorkspace === "sources";
   const isThresholdsWorkspace = activeWorkspace === "thresholds";
   const isRulesWorkspace = activeWorkspace === "rules";
+  const isActivityWorkspace = activeWorkspace === "activity";
+  const isSettingsWorkspace = activeWorkspace === "settings";
   const activeWorkspaceMeta = useMemo(
     () => WORKSPACE_NAV_ITEMS.find((item) => item.key === activeWorkspace) ?? WORKSPACE_NAV_ITEMS[0],
     [activeWorkspace],
@@ -1189,11 +1193,11 @@ export default function AdminPage() {
         }}
       >
         <div style={{ display: "grid", gap: 2 }}>
-          <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>当前工作区</div>
-          <div style={{ fontSize: 14, color: "#0f172a", fontWeight: 800 }}>
-            {activeWorkspaceMeta.label} · {activeWorkspaceMeta.description}
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>当前工作区</div>
+            <div style={{ fontSize: 14, color: "#0f172a", fontWeight: 800 }}>
+              {activeWorkspaceMeta.label} · {activeWorkspaceMeta.description}
+            </div>
           </div>
-        </div>
         <div style={{ fontSize: 12, color: "#475569" }}>
           侧栏用于切换模块，主区只保留当前任务所需的信息密度。
         </div>
@@ -1264,9 +1268,35 @@ export default function AdminPage() {
         ))}
       </div>
 
+      <div
+        style={{
+          display: isOverviewWorkspace ? "flex" : "none",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 14px",
+          borderRadius: 16,
+          border: "1px solid rgba(15,23,42,0.08)",
+          backgroundColor: message.startsWith("操作失败") ? "rgba(254,242,242,0.95)" : "rgba(248,250,252,0.95)",
+          color: message.startsWith("操作失败") ? "#b91c1c" : "#475569",
+          fontSize: 12,
+          boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
+        }}
+      >
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 999,
+            backgroundColor: message.startsWith("操作失败") ? "#ef4444" : "#10b981",
+            flex: "0 0 auto",
+          }}
+        />
+        <span>{message || "配置已就绪，继续调整来源或新闻展示上限。"}</span>
+      </div>
+
       <section
         style={{
-          display: isOverviewWorkspace ? "grid" : "none",
+          display: isSettingsWorkspace ? "grid" : "none",
           padding: 16,
           borderRadius: 18,
           border: "1px solid rgba(15,23,42,0.08)",
@@ -1275,13 +1305,13 @@ export default function AdminPage() {
           gap: 12,
         }}
       >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>展示设置</div>
-              <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
-                Dashboard 的新闻展示上限由这里统一控制
-              </div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>展示设置</div>
+            <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
+              Dashboard 的新闻展示上限由这里统一控制
             </div>
+          </div>
           <div style={{ display: "grid", gap: 2, justifyItems: "end" }}>
             <div style={{ fontSize: 12, color: "#64748b" }}>当前值：{settings.newsLimit}</div>
             <div style={{ fontSize: 11, color: "#94a3b8" }}>保存后立即同步到 API</div>
@@ -1312,32 +1342,6 @@ export default function AdminPage() {
           })}
         </div>
       </section>
-
-      <div
-        style={{
-          display: isOverviewWorkspace ? "flex" : "none",
-          alignItems: "center",
-          gap: 10,
-          padding: "12px 14px",
-          borderRadius: 16,
-          border: "1px solid rgba(15,23,42,0.08)",
-          backgroundColor: message.startsWith("操作失败") ? "rgba(254,242,242,0.95)" : "rgba(248,250,252,0.95)",
-          color: message.startsWith("操作失败") ? "#b91c1c" : "#475569",
-          fontSize: 12,
-          boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
-        }}
-      >
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 999,
-            backgroundColor: message.startsWith("操作失败") ? "#ef4444" : "#10b981",
-            flex: "0 0 auto",
-          }}
-        />
-        <span>{message || "配置已就绪，继续调整来源或新闻展示上限。"}</span>
-      </div>
 
       <section
         style={{
@@ -1716,6 +1720,62 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section
+        style={{
+          display: isActivityWorkspace ? "grid" : "none",
+          padding: 16,
+          borderRadius: 24,
+          border: "1px solid rgba(15,23,42,0.08)",
+          background: "rgba(255,255,255,0.82)",
+          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+          backdropFilter: "blur(16px)",
+          gap: 14,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>Activity</h2>
+            <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+              最近操作与变更历史，单独保留便于审计和回看。
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: "#64748b" }}>{activityLog.length} total</div>
+        </div>
+
+        {activityLog.length === 0 ? (
+          <div style={{ padding: 14, borderRadius: 14, border: "1px dashed rgba(15,23,42,0.12)", backgroundColor: "rgba(248,250,252,0.8)", color: "#64748b", fontSize: 12 }}>
+            暂无操作记录。
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {activityLog.map((entry) => {
+              const levelStyle =
+                entry.level === "success"
+                  ? { color: "#166534", backgroundColor: "rgba(34,197,94,0.12)" }
+                  : entry.level === "warning"
+                    ? { color: "#b45309", backgroundColor: "rgba(245,158,11,0.12)" }
+                    : entry.level === "error"
+                      ? { color: "#b91c1c", backgroundColor: "rgba(239,68,68,0.12)" }
+                      : { color: "#1d4ed8", backgroundColor: "rgba(59,130,246,0.12)" };
+
+              return (
+                <div key={entry.id} style={{ padding: 14, borderRadius: 16, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <span style={{ padding: "3px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, ...levelStyle }}>{entry.title}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{entry.detail}</span>
+                      </div>
+                      <div style={{ marginTop: 4, fontSize: 11, color: "#94a3b8" }}>{formatRelativeTime(entry.at)}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", gap: 16, flex: 1 }}>
@@ -2115,87 +2175,6 @@ export default function AdminPage() {
                     重置视图
                   </button>
                 </div>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gap: 10,
-                  padding: 14,
-                  borderRadius: 18,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "rgba(255,255,255,0.95)",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>最近操作</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                      最近 {Math.min(5, activityLog.length)} 条，帮助你快速回看最新变更。
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{activityLog.length} total</div>
-                </div>
-
-                {activityLog.length === 0 ? (
-                  <div
-                    style={{
-                      padding: 14,
-                      borderRadius: 14,
-                      border: "1px dashed rgba(15,23,42,0.12)",
-                      backgroundColor: "rgba(248,250,252,0.8)",
-                      color: "#64748b",
-                      fontSize: 12,
-                    }}
-                  >
-                    暂无操作记录，执行一次刷新、增删来源或编辑规则后，这里会自动记录。
-                  </div>
-                ) : (
-                  activityLog.slice(0, 5).map((entry) => {
-                    const levelStyle =
-                      entry.level === "success"
-                        ? { color: "#166534", backgroundColor: "rgba(34,197,94,0.12)" }
-                        : entry.level === "warning"
-                          ? { color: "#b45309", backgroundColor: "rgba(245,158,11,0.12)" }
-                          : entry.level === "error"
-                            ? { color: "#b91c1c", backgroundColor: "rgba(239,68,68,0.12)" }
-                            : { color: "#1d4ed8", backgroundColor: "rgba(59,130,246,0.12)" };
-
-                    return (
-                      <div
-                        key={entry.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "flex-start",
-                          padding: "10px 12px",
-                          borderRadius: 14,
-                          border: "1px solid rgba(15,23,42,0.08)",
-                          backgroundColor: "#fff",
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                            <span
-                              style={{
-                                padding: "3px 8px",
-                                borderRadius: 999,
-                                fontSize: 10,
-                                fontWeight: 800,
-                                ...levelStyle,
-                              }}
-                            >
-                              {entry.title}
-                            </span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{entry.detail}</span>
-                          </div>
-                          <div style={{ marginTop: 4, fontSize: 11, color: "#94a3b8" }}>{formatRelativeTime(entry.at)}</div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
               </div>
 
               {groupedFilteredRules.length === 0 ? (
