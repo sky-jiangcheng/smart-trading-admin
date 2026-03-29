@@ -26,6 +26,8 @@ type RefreshSummary = {
   signalCount?: number;
 };
 
+type RuleRiskFilter = "all" | "bullish" | "bearish" | "neutral";
+
 const NEWS_LIMIT_OPTIONS = [50, 100, 200] as const;
 const LAST_REFRESH_STORAGE_KEY = "investment-admin:last-refresh-at";
 const LAST_SYNC_STORAGE_KEY = "investment-admin:last-config-sync-at";
@@ -165,6 +167,7 @@ export default function AdminPage() {
   const [newSource, setNewSource] = useState("");
   const [sourceSearch, setSourceSearch] = useState("");
   const [ruleSearch, setRuleSearch] = useState("");
+  const [ruleRiskFilter, setRuleRiskFilter] = useState<RuleRiskFilter>("all");
   const [selectedRuleKeywords, setSelectedRuleKeywords] = useState<string[]>([]);
   const [newRule, setNewRule] = useState<Rule>({ keyword: "", asset: "", direction: "neutral", reason: "" });
   const [message, setMessage] = useState("");
@@ -369,6 +372,10 @@ export default function AdminPage() {
   });
   const ruleSearchTerm = ruleSearch.trim().toLowerCase();
   const filteredRules = rules.filter((rule) => {
+    if (ruleRiskFilter !== "all" && rule.direction !== ruleRiskFilter) {
+      return false;
+    }
+
     if (!ruleSearchTerm) {
       return true;
     }
@@ -377,6 +384,11 @@ export default function AdminPage() {
     return haystack.includes(ruleSearchTerm);
   });
   const selectedVisibleRuleCount = filteredRules.filter((rule) => selectedRuleKeywords.includes(rule.keyword)).length;
+  const ruleRiskCounts = {
+    bullish: rules.filter((rule) => rule.direction === "bullish").length,
+    bearish: rules.filter((rule) => rule.direction === "bearish").length,
+    neutral: rules.filter((rule) => rule.direction === "neutral").length,
+  };
   const totalPresetSources = SOURCE_PRESETS.length;
   const lastRefreshLabel = formatRelativeTime(lastRefreshAt);
   const lastSyncLabel = formatRelativeTime(lastConfigSyncAt);
@@ -839,6 +851,61 @@ export default function AdminPage() {
                 已选 {selectedRuleKeywords.length} · 当前筛选 {filteredRules.length}
               </div>
             </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+              gap: 10,
+              marginTop: 14,
+            }}
+          >
+            {[
+              { key: "all", label: "全部规则", value: rules.length, tone: "#0f172a", background: "rgba(15,23,42,0.06)" },
+              { key: "bullish", label: "高关注", value: ruleRiskCounts.bullish, tone: "#166534", background: "rgba(34,197,94,0.12)" },
+              { key: "bearish", label: "风险", value: ruleRiskCounts.bearish, tone: "#b91c1c", background: "rgba(239,68,68,0.12)" },
+              { key: "neutral", label: "观察", value: ruleRiskCounts.neutral, tone: "#92400e", background: "rgba(245,158,11,0.12)" },
+            ].map((item) => {
+              const active = ruleRiskFilter === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setRuleRiskFilter(item.key as RuleRiskFilter)}
+                  style={{
+                    textAlign: "left",
+                    padding: 14,
+                    borderRadius: 18,
+                    border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                    backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                    boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
+                    cursor: "pointer",
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                  <div style={{ fontSize: 24, lineHeight: 1.05, fontWeight: 800, color: item.tone }}>{item.value}</div>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "fit-content",
+                      padding: "4px 8px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: item.tone,
+                      backgroundColor: item.background,
+                    }}
+                  >
+                    {active ? "当前筛选" : "点击筛选"}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           <div style={{ marginTop: 16, display: "grid", gap: 12, flex: 1, minHeight: 0 }}>
