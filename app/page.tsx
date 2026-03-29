@@ -17,6 +17,12 @@ type SourcePreset = {
   section: "china-news" | "china-hot" | "global";
 };
 
+type DashboardSettings = {
+  newsLimit: number;
+};
+
+const NEWS_LIMIT_OPTIONS = [50, 100, 200] as const;
+
 const SOURCE_PRESETS: SourcePreset[] = [
   { group: "china", section: "china-news", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
   { group: "china", section: "china-news", label: "人民网 - 时政", url: "http://www.people.com.cn/rss/politics.xml" },
@@ -59,6 +65,7 @@ function getSourceLabel(url: string) {
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
+  const [settings, setSettings] = useState<DashboardSettings>({ newsLimit: 200 });
   const [newSource, setNewSource] = useState("");
   const [sourceSearch, setSourceSearch] = useState("");
   const [newRule, setNewRule] = useState<Rule>({ keyword: "", asset: "", direction: "neutral", reason: "" });
@@ -68,21 +75,26 @@ export default function AdminPage() {
 
   const loadConfig = useCallback(async () => {
     try {
-      const [sResp, rResp] = await Promise.all([
+      const [sResp, rResp, settingsResp] = await Promise.all([
         fetch(`${config.apiUrl}/admin/sources`, { headers: { Authorization: `Basic ${auth}` } }),
         fetch(`${config.apiUrl}/admin/rules`, { headers: { Authorization: `Basic ${auth}` } }),
+        fetch(`${config.apiUrl}/admin/settings`, { headers: { Authorization: `Basic ${auth}` } }),
       ]);
 
-      if (!sResp.ok || !rResp.ok) {
+      if (!sResp.ok || !rResp.ok || !settingsResp.ok) {
         setMessage("请确认投资 API 管理端已启动，并使用正确的用户名密码 (admin/password)。");
         return;
       }
 
       const sJson = await sResp.json();
       const rJson = await rResp.json();
+      const settingsJson = await settingsResp.json();
 
       setSources(sJson.sources || []);
       setRules(rJson.rules || []);
+      if ([50, 100, 200].includes(Number(settingsJson?.settings?.newsLimit))) {
+        setSettings({ newsLimit: Number(settingsJson.settings.newsLimit) });
+      }
       setMessage("配置加载成功");
     } catch (error) {
       setMessage(`加载失败：${error}`);
@@ -171,6 +183,19 @@ export default function AdminPage() {
     const newsCount = res.newsCount as number | undefined;
     const signalCount = res.signalCount as number | undefined;
     setMessage(`刷新完成：新闻 ${newsCount ?? 0}，信号 ${signalCount ?? 0}`);
+  }
+
+  async function updateNewsLimit(newsLimit: number) {
+    if (!NEWS_LIMIT_OPTIONS.includes(newsLimit as (typeof NEWS_LIMIT_OPTIONS)[number])) {
+      return;
+    }
+
+    const res = await requestAdmin("/admin/settings", "POST", { newsLimit });
+    const updated = res.settings as DashboardSettings | undefined;
+    if (updated && [50, 100, 200].includes(Number(updated.newsLimit))) {
+      setSettings({ newsLimit: Number(updated.newsLimit) });
+      setMessage(`展示上限已更新为 ${updated.newsLimit}`);
+    }
   }
 
   const chinaEnabled = DEFAULT_SOURCE_GROUPS.china.filter((preset) => sources.includes(preset.url));
@@ -340,6 +365,52 @@ export default function AdminPage() {
           </div>
         ))}
       </div>
+
+      <section
+        style={{
+          padding: 16,
+          borderRadius: 18,
+          border: "1px solid rgba(15,23,42,0.08)",
+          backgroundColor: "rgba(255,255,255,0.78)",
+          boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>展示设置</div>
+            <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
+              Dashboard 的新闻展示上限由这里统一控制
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: "#64748b" }}>当前值：{settings.newsLimit}</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+          {NEWS_LIMIT_OPTIONS.map((option) => {
+            const active = settings.newsLimit === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => updateNewsLimit(option)}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: active ? "#0f172a" : "#fff",
+                  color: active ? "#fff" : "#0f172a",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  minHeight: 48,
+                }}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <div style={{ marginBottom: -4, color: "#475569", fontSize: 12 }}>{message}</div>
 
