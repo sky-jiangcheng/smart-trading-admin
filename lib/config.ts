@@ -9,14 +9,15 @@ function resolveDashboardUrl() {
     return DEFAULT_DASHBOARD_URL;
   }
 
-  // 全局“老域名”强制兜底：所有 smart-trading-dashboard.vercel.app 都跳转到 gules 版本。
-  if (configuredUrl.includes("smart-trading-dashboard.vercel.app") && !configuredUrl.includes("gules")) {
-    return DEFAULT_DASHBOARD_URL;
-  }
-
   // 额外安全：若配置不是合法 URL，也强制回 fallback。
   try {
-    new URL(configuredUrl);
+    const parsed = new URL(configuredUrl);
+
+    // 全局“老域名”强制兜底：只要主机名还是旧的 dashboard 域，就回到 gules 版本。
+    if (parsed.hostname === "smart-trading-dashboard.vercel.app") {
+      return DEFAULT_DASHBOARD_URL;
+    }
+
     return configuredUrl;
   } catch {
     return DEFAULT_DASHBOARD_URL;
