@@ -1426,26 +1426,55 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         style={{
           display: isOverviewWorkspace ? "flex" : "none",
           alignItems: "center",
-          gap: 10,
+          justifyContent: "space-between",
+          gap: 12,
           padding: "12px 14px",
-          borderRadius: 16,
+          borderRadius: 18,
           border: "1px solid rgba(15,23,42,0.08)",
           backgroundColor: message.startsWith("操作失败") ? "rgba(254,242,242,0.95)" : "rgba(248,250,252,0.95)",
           color: message.startsWith("操作失败") ? "#b91c1c" : "#475569",
           fontSize: 12,
           boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
+          flexWrap: "wrap",
         }}
       >
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 999,
-            backgroundColor: message.startsWith("操作失败") ? "#ef4444" : "#10b981",
-            flex: "0 0 auto",
-          }}
-        />
-        <span>{message || "配置已就绪，继续调整来源或新闻展示上限。"}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 999,
+              backgroundColor: message.startsWith("操作失败") ? "#ef4444" : "#10b981",
+              flex: "0 0 auto",
+            }}
+          />
+          <span style={{ fontWeight: 700 }}>{message || "配置已就绪，继续调整来源或新闻展示上限。"}</span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {[
+            { label: "API", value: apiHealthLabel },
+            { label: "刷新", value: lastRefreshLabel },
+            { label: "同步", value: lastSyncLabel },
+            { label: "工作区", value: activeWorkspaceMeta.label },
+          ].map((chip) => (
+            <span
+              key={chip.label}
+              style={{
+                padding: "5px 10px",
+                borderRadius: 999,
+                backgroundColor: "rgba(255,255,255,0.84)",
+                border: "1px solid rgba(15,23,42,0.08)",
+                color: "#334155",
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            >
+              {chip.label}: {chip.value}
+            </span>
+          ))}
+        </div>
       </div>
 
       <section
