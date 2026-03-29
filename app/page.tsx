@@ -2427,6 +2427,62 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 ))}
               </div>
             </div>
+
+            <div style={{ padding: 14, borderRadius: 18, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(255,255,255,0.88)", display: "grid", gap: 10, boxShadow: "0 12px 30px rgba(15,23,42,0.04)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>最近高亮</div>
+                  <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>把最近几条动作压缩成可快速扫读的节奏。</div>
+                </div>
+                <div style={{ fontSize: 11, color: "#94a3b8" }}>{recentActivity.length} 条</div>
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {(recentActivity.length > 0 ? recentActivity.slice(0, 4) : []).map((entry) => {
+                  const badgeStyle =
+                    entry.level === "success"
+                      ? { color: "#166534", backgroundColor: "rgba(34,197,94,0.12)" }
+                      : entry.level === "warning"
+                        ? { color: "#b45309", backgroundColor: "rgba(245,158,11,0.12)" }
+                        : entry.level === "error"
+                          ? { color: "#b91c1c", backgroundColor: "rgba(239,68,68,0.12)" }
+                          : { color: "#1d4ed8", backgroundColor: "rgba(59,130,246,0.12)" };
+
+                  return (
+                    <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", padding: "8px 10px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.06)", backgroundColor: "rgba(248,250,252,0.9)" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                          <span style={{ padding: "3px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, ...badgeStyle }}>{entry.level}</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{entry.title}</span>
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>{entry.detail}</div>
+                      </div>
+                      <div style={{ fontSize: 10, color: "#94a3b8", whiteSpace: "nowrap" }}>{formatRelativeTime(entry.at)}</div>
+                    </div>
+                  );
+                })}
+                {recentActivity.length === 0 && <EmptyState title="暂无高亮" description="完成一次配置变更后，这里会显示最近动作。" />}
+              </div>
+            </div>
+
+            <div style={{ padding: 14, borderRadius: 18, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(248,250,252,0.92)", display: "grid", gap: 10 }}>
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>工作区脉冲</div>
+                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>把当前控制台的关键状态收拢到一屏里。</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                {[
+                  { label: "来源", value: sources.length, tone: "#0f172a" },
+                  { label: "阈值", value: thresholds.length, tone: "#1d4ed8" },
+                  { label: "规则", value: rules.length, tone: "#166534" },
+                  { label: "刷新", value: lastRefreshLabel, tone: "#334155" },
+                ].map((item) => (
+                  <div key={item.label} style={{ padding: 10, borderRadius: 14, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff", display: "grid", gap: 4 }}>
+                    <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: item.tone, lineHeight: 1.05 }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div style={{ display: "grid", gap: 10, minHeight: 0 }}>
