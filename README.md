@@ -125,6 +125,14 @@ investment-admin/
 - ESLint 配置遵循 Next.js 最佳实践
 - 提交前运行 `npm run lint` 检查
 
+### 全局开发规则（必须遵守）
+
+1. 所有跨应用跳转地址必须通过 `investment-admin/lib/config.ts` / `investment-dashboard/lib/config.ts` 的 `config` 变量读取，不可在组件或按钮处硬编码 URL。
+2. `dashboardUrl` 默认值为 `https://smart-trading-dashboard-gules.vercel.app`，不允许回老域 `smart-trading-dashboard.vercel.app`。
+3. 需在 `.env.local` 或平台环境变量中使用 `NEXT_PUBLIC_DASHBOARD_URL`、`NEXT_PUBLIC_API_URL`、`NEXT_PUBLIC_ADMIN_URL` 统一配置。
+4. 新入口 href/跳转逻辑必须 `window.location.href = config.dashboardUrl`（或 `router.push(config.dashboardUrl)`），避免直接写死。
+5. 若线上跑出旧域结果，先检查配置是否生效（`console.log(config.dashboardUrl)`），然后 clear cache/redeploy。
+
 ### 样式说明
 
 采用内联样式保持与 Dashboard 一致的视觉风格。
