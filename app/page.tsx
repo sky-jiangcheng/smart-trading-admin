@@ -841,6 +841,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
     return haystack.includes(thresholdSearchTerm);
   });
   const thresholdTriggeredCount = thresholds.filter((item) => getThresholdStatus(item).isTriggered).length;
+  const thresholdHighPriorityCount = thresholds.filter((item) => item.priority === "P0").length;
   const thresholdDirectionCounts = {
     above: thresholds.filter((item) => item.direction === "above").length,
     below: thresholds.filter((item) => item.direction === "below").length,
@@ -902,6 +903,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
     [rules],
   );
   const recentActivity = useMemo(() => activityLog.slice(0, 4), [activityLog]);
+  const activitySuccessCount = activityLog.filter((entry) => entry.level === "success").length;
+  const activityWarningCount = activityLog.filter((entry) => entry.level === "warning").length;
+  const activityErrorCount = activityLog.filter((entry) => entry.level === "error").length;
   const apiHealthLabel = lastConfigSyncAt ? "Connected" : "Idle";
   const configSyncDurationLabel = lastConfigSyncDurationMs === null ? "暂无" : `${lastConfigSyncDurationMs} ms`;
   const refreshDurationLabel = lastRefreshDurationMs === null ? "暂无" : `${lastRefreshDurationMs} ms`;
@@ -1361,41 +1365,67 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           gap: 12,
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>展示设置</div>
-            <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
-              Dashboard 的新闻展示上限由这里统一控制
+        <SectionHeader
+          eyebrow="设置"
+          title="展示上限与全局参数"
+          description="这里控制 Dashboard 的新闻展示规模，建议只保留少量确定性的选项。"
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 0.8fr) minmax(0, 1.2fr)", gap: 14, alignItems: "start" }}>
+          <div style={{ display: "grid", gap: 10, alignContent: "start", position: "sticky", top: 16, alignSelf: "start" }}>
+            <div style={{ padding: 14, borderRadius: 18, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(248,250,252,0.92)", display: "grid", gap: 10 }}>
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>当前展示上限</div>
+                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>Dashboard 每次最多拉取和展示的新闻数量。</div>
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>
+                {settings.newsLimit}
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, color: "#475569" }}>
+                  <span>同步状态</span>
+                  <span>保存后立即生效</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, color: "#475569" }}>
+                  <span>可选值</span>
+                  <span>{NEWS_LIMIT_OPTIONS.join(" / ")}</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div style={{ display: "grid", gap: 2, justifyItems: "end" }}>
-            <div style={{ fontSize: 12, color: "#64748b" }}>当前值：{settings.newsLimit}</div>
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>保存后立即同步到 API</div>
+
+          <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+              {NEWS_LIMIT_OPTIONS.map((option) => {
+                const active = settings.newsLimit === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => updateNewsLimit(option)}
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 14,
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      backgroundColor: active ? "#0f172a" : "#fff",
+                      color: active ? "#fff" : "#0f172a",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      minHeight: 48,
+                    }}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ padding: 14, borderRadius: 18, border: "1px solid rgba(15,23,42,0.06)", backgroundColor: "rgba(248,250,252,0.92)", display: "grid", gap: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>说明</div>
+              <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.55 }}>
+                这个值会直接影响 Dashboard 首屏的新闻规模。保守一些的配置通常更利于阅读和刷新速度。
+              </div>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>当前由 API 配置中心统一管理。</div>
+            </div>
           </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-          {NEWS_LIMIT_OPTIONS.map((option) => {
-            const active = settings.newsLimit === option;
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => updateNewsLimit(option)}
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 14,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: active ? "#0f172a" : "#fff",
-                  color: active ? "#fff" : "#0f172a",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  minHeight: 48,
-                }}
-              >
-                {option}
-              </button>
-            );
-          })}
         </div>
       </section>
 
@@ -1403,32 +1433,64 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         style={{
           display: isThresholdsWorkspace ? "grid" : "none",
           padding: 16,
-          borderRadius: 18,
+          borderRadius: 24,
           border: "1px solid rgba(15,23,42,0.08)",
           backgroundColor: "rgba(255,255,255,0.82)",
-          boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+          backdropFilter: "blur(16px)",
           gap: 14,
         }}
       >
         <SectionHeader
           eyebrow="市场阈值"
-          title="股票、货币、期货等阈值与当前值统一管理"
-          description={`${thresholds.length} items · 已触发 ${thresholdTriggeredCount} · 上破 ${thresholdDirectionCounts.above} · 下破 ${thresholdDirectionCounts.below}`}
+          title="左侧编辑阈值，右侧维护阈值流"
+          description={`${thresholds.length} items · 已触发 ${thresholdTriggeredCount} · 核心 ${thresholdHighPriorityCount} · 上破 ${thresholdDirectionCounts.above} · 下破 ${thresholdDirectionCounts.below}`}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.95fr) minmax(0, 1.05fr)", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+          {[
+            { label: "阈值总数", value: thresholds.length, meta: "当前维护中的全部阈值" },
+            { label: "已触发", value: thresholdTriggeredCount, meta: "满足条件的阈值" },
+            { label: "核心 P0", value: thresholdHighPriorityCount, meta: "优先跟踪项" },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                padding: 14,
+                borderRadius: 16,
+                border: "1px solid rgba(15,23,42,0.08)",
+                backgroundColor: "rgba(255,255,255,0.8)",
+                boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+                display: "grid",
+                gap: 6,
+              }}
+            >
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.05 }}>{item.value}</div>
+              <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>{item.meta}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 0.92fr) minmax(0, 1.08fr)", gap: 14, alignItems: "start" }}>
           <div
             style={{
               padding: 14,
-              borderRadius: 16,
+              borderRadius: 18,
               border: "1px solid rgba(15,23,42,0.06)",
               backgroundColor: "rgba(248,250,252,0.92)",
               display: "grid",
               gap: 10,
               alignContent: "start",
+              position: "sticky",
+              top: 16,
+              alignSelf: "start",
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>快速录入 / 更新</div>
+            <div style={{ display: "grid", gap: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>快速录入 / 更新</div>
+              <div style={{ fontSize: 11, color: "#64748b" }}>把编辑动作集中在左侧，降低误操作概率。</div>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
               <input
                 value={newThreshold.symbol}
@@ -1612,7 +1674,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           <div
             style={{
               padding: 14,
-              borderRadius: 16,
+              borderRadius: 18,
               border: "1px solid rgba(15,23,42,0.06)",
               backgroundColor: "#fff",
               display: "grid",
@@ -1774,66 +1836,185 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         <SectionHeader
           eyebrow="Activity"
           title="最近操作与变更历史"
-          description="单独保留便于审计、回看和回溯问题。"
+          description="把最近动作、告警和成功同步拆开看，便于回看和回溯问题。"
           action={<div style={{ fontSize: 12, color: "#64748b" }}>{activityLog.length} total</div>}
         />
 
-        {activityLog.length === 0 ? (
-          <EmptyState title="暂无操作记录" description="现在还没有可回看的配置变更。" />
-        ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {activityLog.map((entry) => {
-              const levelStyle =
-                entry.level === "success"
-                  ? { color: "#166534", backgroundColor: "rgba(34,197,94,0.12)" }
-                  : entry.level === "warning"
-                    ? { color: "#b45309", backgroundColor: "rgba(245,158,11,0.12)" }
-                    : entry.level === "error"
-                      ? { color: "#b91c1c", backgroundColor: "rgba(239,68,68,0.12)" }
-                      : { color: "#1d4ed8", backgroundColor: "rgba(59,130,246,0.12)" };
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 0.85fr) minmax(0, 1.15fr)", gap: 14, alignItems: "start" }}>
+          <div style={{ display: "grid", gap: 12, alignContent: "start", position: "sticky", top: 16, alignSelf: "start" }}>
+            <div style={{ padding: 14, borderRadius: 18, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "rgba(248,250,252,0.92)", display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>活动概览</div>
+                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>把成功、告警和错误拆开看，方便快速定位近期变化。</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                {[
+                  { label: "成功", value: activitySuccessCount, tone: "#166534", background: "rgba(34,197,94,0.12)" },
+                  { label: "告警", value: activityWarningCount, tone: "#b45309", background: "rgba(245,158,11,0.12)" },
+                  { label: "错误", value: activityErrorCount, tone: "#b91c1c", background: "rgba(239,68,68,0.12)" },
+                  { label: "总计", value: activityLog.length, tone: "#0f172a", background: "rgba(15,23,42,0.06)" },
+                ].map((item) => (
+                  <div key={item.label} style={{ padding: 12, borderRadius: 14, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff", display: "grid", gap: 4 }}>
+                    <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: item.tone, lineHeight: 1.05 }}>{item.value}</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8" }}>最近 12 条本地记录</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
-              return (
-                <div key={entry.id} style={{ padding: 14, borderRadius: 16, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                        <span style={{ padding: "3px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, ...levelStyle }}>{entry.title}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{entry.detail}</span>
+          <div style={{ display: "grid", gap: 10, minHeight: 0 }}>
+            {activityLog.length === 0 ? (
+              <EmptyState title="暂无操作记录" description="现在还没有可回看的配置变更。" />
+            ) : (
+              activityLog.map((entry) => {
+                const levelStyle =
+                  entry.level === "success"
+                    ? { color: "#166534", backgroundColor: "rgba(34,197,94,0.12)" }
+                    : entry.level === "warning"
+                      ? { color: "#b45309", backgroundColor: "rgba(245,158,11,0.12)" }
+                      : entry.level === "error"
+                        ? { color: "#b91c1c", backgroundColor: "rgba(239,68,68,0.12)" }
+                        : { color: "#1d4ed8", backgroundColor: "rgba(59,130,246,0.12)" };
+
+                return (
+                  <div key={entry.id} style={{ padding: 14, borderRadius: 16, border: "1px solid rgba(15,23,42,0.08)", backgroundColor: "#fff" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <span style={{ padding: "3px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800, ...levelStyle }}>{entry.title}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{entry.detail}</span>
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 11, color: "#94a3b8" }}>{formatRelativeTime(entry.at)}</div>
                       </div>
-                      <div style={{ marginTop: 4, fontSize: 11, color: "#94a3b8" }}>{formatRelativeTime(entry.at)}</div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
-        )}
+        </div>
       </section>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", gap: 16, flex: 1 }}>
-        <section
-          style={{
-            display: isSourcesWorkspace ? "grid" : "none",
-            minWidth: 0,
-            border: "1px solid rgba(15,23,42,0.08)",
+      <section
+        style={{
+          display: isSourcesWorkspace ? "grid" : "none",
+          minWidth: 0,
+          border: "1px solid rgba(15,23,42,0.08)",
             borderRadius: 24,
             background: "rgba(255,255,255,0.82)",
             boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
-            padding: 18,
-            backdropFilter: "blur(16px)",
-          }}
-        >
-          <SectionHeader
-            eyebrow="RSS 数据源"
-            title="已启用的多个 RSS 源会由 API 同时聚合成一个新闻流"
-            description="支持搜索、分组和快捷启用。"
-            action={
+          padding: 18,
+          backdropFilter: "blur(16px)",
+        }}
+      >
+        <SectionHeader
+          eyebrow="RSS 数据源"
+          title="左侧配置源池，右侧检查已启用来源"
+          description="支持搜索、分组、快捷启用和手动新增，重点信息会先留在视线更靠上的位置。"
+          action={
+            <div style={{ display: "grid", gap: 2, justifyItems: "end" }}>
+              <div style={{ fontSize: 12, color: "#64748b" }}>{sources.length} enabled</div>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                默认组 {chinaEnabled.length + globalEnabled.length}/{totalPresetSources}
+              </div>
+            </div>
+          }
+        />
+
+        <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(300px, 0.88fr) minmax(0, 1.12fr)", gap: 14, alignItems: "start" }}>
+          <div style={{ display: "grid", gap: 12, alignContent: "start", position: "sticky", top: 16, alignSelf: "start" }}>
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 18,
+                backgroundColor: "rgba(248,250,252,0.92)",
+                border: "1px solid rgba(15,23,42,0.06)",
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>源池概况</div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>先把常用来源补齐，再到右侧检查启用结果。</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                {[
+                  { label: "已启用", value: sources.length },
+                  { label: "默认组", value: chinaEnabled.length + globalEnabled.length },
+                  { label: "自定义", value: customSources.length },
+                ].map((item) => (
+                  <div key={item.label} style={{ padding: 12, borderRadius: 14, backgroundColor: "#fff", border: "1px solid rgba(15,23,42,0.08)", display: "grid", gap: 4 }}>
+                    <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+                    <div style={{ fontSize: 20, color: "#0f172a", fontWeight: 800, lineHeight: 1.05 }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 18,
+                backgroundColor: "rgba(248,250,252,0.92)",
+                border: "1px solid rgba(15,23,42,0.06)",
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>快速添加</div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>新源先在这里录入，避免和当前列表混在一起。</div>
+              </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  placeholder="新增 RSS URL"
+                  value={newSource}
+                  onChange={(e) => setNewSource(e.target.value)}
+                  style={{
+                    flex: "1 1 240px",
+                    minWidth: 0,
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(15,23,42,0.12)",
+                    backgroundColor: "#fff",
+                  }}
+                />
+                <button
+                  onClick={addSource}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(15,23,42,0.08)",
+                    backgroundColor: "#0f172a",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  添加
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 18,
+                backgroundColor: "rgba(248,250,252,0.92)",
+                border: "1px solid rgba(15,23,42,0.06)",
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>默认启用</div>
               <button
                 onClick={() => addPresetGroup("china")}
                 style={{
-                  padding: "9px 12px",
-                  borderRadius: 999,
+                  padding: "10px 12px",
+                  borderRadius: 14,
                   border: "1px solid rgba(15,23,42,0.08)",
                   backgroundColor: "#0f172a",
                   color: "#fff",
@@ -1846,8 +2027,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               <button
                 onClick={() => addPresetGroup("global")}
                 style={{
-                  padding: "9px 12px",
-                  borderRadius: 999,
+                  padding: "10px 12px",
+                  borderRadius: 14,
                   border: "1px solid rgba(15,23,42,0.08)",
                   backgroundColor: "#ffffff",
                   color: "#0f172a",
@@ -1857,125 +2038,102 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               >
                 一键启用国际默认源
               </button>
-              </div>
-            }
-          />
-
-          <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>已启用来源</div>
-              <input
-                value={sourceSearch}
-                onChange={(e) => setSourceSearch(e.target.value)}
-                placeholder="搜索已启用来源"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.12)",
-                  backgroundColor: "#fff",
-                  fontSize: 12,
-                }}
-              />
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {filteredSources.map((source) => {
-                  const isPreset = SOURCE_PRESETS.some((preset) => preset.url === source);
-                  return (
-                    <div
-                      key={source}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "8px 10px",
-                        borderRadius: 999,
-                        border: "1px solid rgba(15,23,42,0.08)",
-                        backgroundColor: isPreset ? "rgba(15,23,42,0.05)" : "rgba(239,246,255,0.9)",
-                        color: "#0f172a",
-                        fontSize: 12,
-                      }}
-                    >
-                      <span style={{ fontWeight: 700 }}>{getSourceLabel(source)}</span>
-                      <span style={{ color: "#64748b", maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {source}
-                      </span>
-                      <button
-                        onClick={() => removeSource(source)}
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          color: "#ef4444",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        删除
-                      </button>
-                    </div>
-                  );
-                })}
-                {filteredSources.length === 0 && sources.length > 0 && (
-                  <EmptyState title="没有匹配的来源" description="可以尝试清空搜索，或者切换到其他工作区添加来源。" />
-                )}
-                {sources.length === 0 && <EmptyState title="暂无来源" description="先启用默认组或手动添加一个 RSS 源。" />}
-              </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: 10,
-                padding: 14,
-                borderRadius: 18,
-                backgroundColor: "rgba(248,250,252,0.9)",
-                border: "1px solid rgba(15,23,42,0.06)",
-              }}
-            >
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>手动添加源</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <input
-                    placeholder="新增 RSS URL"
-                    value={newSource}
-                    onChange={(e) => setNewSource(e.target.value)}
-                    style={{
-                      flex: "1 1 280px",
-                      minWidth: 0,
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                      border: "1px solid rgba(15,23,42,0.12)",
-                      backgroundColor: "#fff",
-                    }}
-                  />
-                  <button
-                    onClick={addSource}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      border: "1px solid rgba(15,23,42,0.08)",
-                      backgroundColor: "#0f172a",
-                      color: "#fff",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    添加
-                  </button>
+            {renderPresetSection("推荐中国新闻", PRESET_SECTIONS["china-news"])}
+            {renderPresetSection("推荐中国热榜", PRESET_SECTIONS["china-hot"])}
+            {renderPresetSection("推荐国际来源", PRESET_SECTIONS.global)}
+          </div>
+
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 18,
+              backgroundColor: "rgba(255,255,255,0.92)",
+              border: "1px solid rgba(15,23,42,0.08)",
+              display: "grid",
+              gap: 12,
+              minHeight: 0,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>已启用来源</div>
+                <div style={{ marginTop: 4, fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>
+                  搜索当前启用的源，删除后会立即影响 Dashboard 的聚合结果。
                 </div>
               </div>
+              <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                {filteredSources.length}/{sources.length} sources
+              </div>
+            </div>
 
-              {renderPresetSection("推荐中国新闻", PRESET_SECTIONS["china-news"])}
-              {renderPresetSection("推荐中国热榜", PRESET_SECTIONS["china-hot"])}
-              {renderPresetSection("推荐国际来源", PRESET_SECTIONS.global)}
+            <input
+              value={sourceSearch}
+              onChange={(e) => setSourceSearch(e.target.value)}
+              placeholder="搜索已启用来源"
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: "1px solid rgba(15,23,42,0.12)",
+                backgroundColor: "#fff",
+                fontSize: 12,
+              }}
+            />
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {filteredSources.map((source) => {
+                const isPreset = SOURCE_PRESETS.some((preset) => preset.url === source);
+                return (
+                  <div
+                    key={source}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 10px",
+                      borderRadius: 999,
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      backgroundColor: isPreset ? "rgba(15,23,42,0.05)" : "rgba(239,246,255,0.9)",
+                      color: "#0f172a",
+                      fontSize: 12,
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <span style={{ fontWeight: 700 }}>{getSourceLabel(source)}</span>
+                    <span style={{ color: "#64748b", maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {source}
+                    </span>
+                    <button
+                      onClick={() => removeSource(source)}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: "#ef4444",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      删除
+                    </button>
+                  </div>
+                );
+              })}
+              {filteredSources.length === 0 && sources.length > 0 && (
+                <EmptyState title="没有匹配的来源" description="可以尝试清空搜索，或者切换到其他工作区添加来源。" />
+              )}
+              {sources.length === 0 && <EmptyState title="暂无来源" description="先启用默认组或手动添加一个 RSS 源。" />}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section
-          style={{
-            display: isRulesWorkspace ? "flex" : "none",
-            minWidth: 0,
-            border: "1px solid rgba(15,23,42,0.08)",
+      <section
+        style={{
+          display: isRulesWorkspace ? "flex" : "none",
+          minWidth: 0,
+          border: "1px solid rgba(15,23,42,0.08)",
             borderRadius: 24,
             background: "rgba(255,255,255,0.82)",
             boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
@@ -1989,7 +2147,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             <div>
               <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>信号规则</h2>
               <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                规则会在刷新新闻后自动触发，可按 keyword / asset / reason 进行快速编排，也支持批量处理。
+                规则会在刷新新闻后自动触发，左侧负责筛选和批量操作，右侧负责新增和更新。
               </div>
             </div>
             <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
@@ -2003,14 +2161,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-              gap: 10,
-              marginTop: 14,
-            }}
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginTop: 14 }}>
             {[
               { key: "all", label: "全部规则", value: rules.length, tone: "#0f172a", background: "rgba(15,23,42,0.06)" },
               { key: "bullish", label: "高关注", value: ruleRiskCounts.bullish, tone: "#166534", background: "rgba(34,197,94,0.12)" },
@@ -2058,20 +2209,21 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             })}
           </div>
 
-          <div style={{ marginTop: 16, display: "grid", gap: 12, flex: 1, minHeight: 0 }}>
-            <div
-              style={{
-                display: "grid",
-                gap: 10,
-                padding: 14,
-                borderRadius: 18,
-                backgroundColor: "rgba(248,250,252,0.9)",
-                border: "1px solid rgba(15,23,42,0.06)",
-              }}
-            >
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <input
-                  value={ruleSearch}
+          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0, 1.16fr) minmax(320px, 0.84fr)", gap: 12, flex: 1, minHeight: 0, alignItems: "start" }}>
+            <div style={{ display: "grid", gap: 12, minHeight: 0 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 10,
+                  padding: 14,
+                  borderRadius: 18,
+                  backgroundColor: "rgba(248,250,252,0.9)",
+                  border: "1px solid rgba(15,23,42,0.06)",
+                }}
+              >
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <input
+                    value={ruleSearch}
                   onChange={(e) => setRuleSearch(e.target.value)}
                   placeholder="搜索规则 keyword / asset / reason"
                   style={{
@@ -2403,6 +2555,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 borderRadius: 18,
                 backgroundColor: "rgba(248,250,252,0.9)",
                 border: "1px solid rgba(15,23,42,0.06)",
+                position: "sticky",
+                top: 16,
+                alignSelf: "start",
               }}
             >
               <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>编辑规则</div>
@@ -2471,6 +2626,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               >
                 添加 / 更新规则
               </button>
+            </div>
             </div>
           </div>
         </section>
