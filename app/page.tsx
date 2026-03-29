@@ -1041,7 +1041,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           </div>
           <div style={{ fontSize: 21, fontWeight: 800, color: "#0f172a", lineHeight: 1.08 }}>投资运维控制台</div>
           <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.55 }}>
-            把来源、阈值、规则和刷新状态拆开看，先看总览，再进入对应工作区。
+            这里保留导航和状态，不再重复右侧工作区说明。
           </div>
         </div>
 
@@ -1120,7 +1120,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: 12,
           flexWrap: "wrap",
           padding: "18px 20px",
@@ -1131,7 +1131,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           backdropFilter: "blur(16px)",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span
               style={{
@@ -1148,12 +1148,27 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               管理台
             </span>
             <span style={{ fontSize: 12, color: "#64748b" }}>Investment API 控制中心</span>
+            <span
+              style={{
+                padding: "4px 9px",
+                borderRadius: 999,
+                border: "1px solid rgba(15,23,42,0.08)",
+                backgroundColor: "rgba(15,23,42,0.04)",
+                color: "#334155",
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              {activeWorkspaceMeta.label}
+            </span>
           </div>
           <h1 style={{ margin: 0, fontSize: 28, lineHeight: 1.05, letterSpacing: "-0.03em" }}>
-            数据源与信号编排
+            {activeWorkspaceMeta.label}
           </h1>
           <div style={{ fontSize: 13, color: "#475569", maxWidth: 820, lineHeight: 1.5 }}>
-            在这里管理多个 RSS 源、快速启用中外默认来源，并把新闻刷新为可直接消费的信号流。
+            {activeWorkspaceMeta.description}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>{renderWorkspaceAction()}</div>
