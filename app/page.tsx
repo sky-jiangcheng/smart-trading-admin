@@ -21,7 +21,15 @@ type DashboardSettings = {
   newsLimit: number;
 };
 
+type RefreshSummary = {
+  newsCount?: number;
+  signalCount?: number;
+};
+
 const NEWS_LIMIT_OPTIONS = [50, 100, 200] as const;
+const LAST_REFRESH_STORAGE_KEY = "investment-admin:last-refresh-at";
+const LAST_SYNC_STORAGE_KEY = "investment-admin:last-config-sync-at";
+const LAST_REFRESH_SUMMARY_KEY = "investment-admin:last-refresh-summary";
 
 const SOURCE_PRESETS: SourcePreset[] = [
   { group: "china", section: "china-news", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
@@ -62,6 +70,83 @@ function getSourceLabel(url: string) {
   }
 }
 
+function formatRelativeTime(timestamp: number | null) {
+  if (!timestamp) {
+    return "暂无记录";
+  }
+
+  const diffMinutes = Math.max(1, Math.round((Date.now() - timestamp) / 60_000));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} 分钟前`;
+  }
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} 小时前`;
+  }
+
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays} 天前`;
+}
+
+function readStoredTimestamp(key: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(key);
+  if (!raw) {
+    return null;
+  }
+
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function writeStoredTimestamp(key: string, value: number | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (value === null) {
+    window.localStorage.removeItem(key);
+    return;
+  }
+
+  window.localStorage.setItem(key, String(value));
+}
+
+function readStoredRefreshSummary() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(LAST_REFRESH_SUMMARY_KEY);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as RefreshSummary;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredRefreshSummary(summary: RefreshSummary | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (!summary) {
+    window.localStorage.removeItem(LAST_REFRESH_SUMMARY_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(LAST_REFRESH_SUMMARY_KEY, JSON.stringify(summary));
+}
+
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
@@ -71,6 +156,9 @@ export default function AdminPage() {
   const [newRule, setNewRule] = useState<Rule>({ keyword: "", asset: "", direction: "neutral", reason: "" });
   const [message, setMessage] = useState("");
   const [isRefreshingNews, setIsRefreshingNews] = useState(false);
+  const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
+  const [lastConfigSyncAt, setLastConfigSyncAt] = useState<number | null>(null);
+  const [lastRefreshSummary, setLastRefreshSummary] = useState<RefreshSummary | null>(null);
 
   const auth = btoa(`${process.env.NEXT_PUBLIC_ADMIN_USER || "admin"}:${process.env.NEXT_PUBLIC_ADMIN_PASS || "password"}`);
 
@@ -96,6 +184,9 @@ export default function AdminPage() {
       if ([50, 100, 200].includes(Number(settingsJson?.settings?.newsLimit))) {
         setSettings({ newsLimit: Number(settingsJson.settings.newsLimit) });
       }
+      const syncedAt = Date.now();
+      setLastConfigSyncAt(syncedAt);
+      writeStoredTimestamp(LAST_SYNC_STORAGE_KEY, syncedAt);
       setMessage("配置加载成功");
     } catch (error) {
       setMessage(`加载失败：${error}`);
@@ -103,6 +194,9 @@ export default function AdminPage() {
   }, [auth]);
 
   useEffect(() => {
+    setLastRefreshAt(readStoredTimestamp(LAST_REFRESH_STORAGE_KEY));
+    setLastConfigSyncAt(readStoredTimestamp(LAST_SYNC_STORAGE_KEY));
+    setLastRefreshSummary(readStoredRefreshSummary());
     loadConfig();
   }, [loadConfig]);
 
@@ -190,6 +284,12 @@ export default function AdminPage() {
 
     const newsCount = res.newsCount as number | undefined;
     const signalCount = res.signalCount as number | undefined;
+    const refreshedAt = Date.now();
+    const summary = { newsCount, signalCount };
+    setLastRefreshAt(refreshedAt);
+    setLastRefreshSummary(summary);
+    writeStoredTimestamp(LAST_REFRESH_STORAGE_KEY, refreshedAt);
+    writeStoredRefreshSummary(summary);
     setMessage(`刷新完成：新闻 ${newsCount ?? 0}，信号 ${signalCount ?? 0}`);
   }
 
@@ -202,6 +302,9 @@ export default function AdminPage() {
     const updated = res.settings as DashboardSettings | undefined;
     if (updated && [50, 100, 200].includes(Number(updated.newsLimit))) {
       setSettings({ newsLimit: Number(updated.newsLimit) });
+      const syncedAt = Date.now();
+      setLastConfigSyncAt(syncedAt);
+      writeStoredTimestamp(LAST_SYNC_STORAGE_KEY, syncedAt);
       setMessage(`展示上限已更新为 ${updated.newsLimit}`);
     }
   }
@@ -217,6 +320,13 @@ export default function AdminPage() {
 
     return `${getSourceLabel(source)} ${source}`.toLowerCase().includes(sourceSearchTerm);
   });
+  const totalPresetSources = SOURCE_PRESETS.length;
+  const lastRefreshLabel = formatRelativeTime(lastRefreshAt);
+  const lastSyncLabel = formatRelativeTime(lastConfigSyncAt);
+  const lastRefreshDetail =
+    lastRefreshSummary?.newsCount !== undefined || lastRefreshSummary?.signalCount !== undefined
+      ? `新闻 ${lastRefreshSummary.newsCount ?? 0} · 信号 ${lastRefreshSummary.signalCount ?? 0}`
+      : "暂无刷新结果";
 
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
@@ -339,6 +449,8 @@ export default function AdminPage() {
               color: isRefreshingNews ? "#64748b" : "#0f172a",
               fontWeight: 700,
               cursor: isRefreshingNews ? "wait" : "pointer",
+              minWidth: 168,
+              boxShadow: isRefreshingNews ? "none" : "0 8px 22px rgba(15,23,42,0.06)",
             }}
             onClick={refreshNews}
           >
@@ -346,6 +458,37 @@ export default function AdminPage() {
           </button>
         </div>
       </header>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gap: 12,
+        }}
+      >
+        {[
+          { label: "最近刷新", value: lastRefreshLabel, meta: lastRefreshDetail },
+          { label: "配置同步", value: lastSyncLabel, meta: `${sources.length} sources · ${rules.length} rules` },
+          { label: "默认源覆盖", value: `${chinaEnabled.length + globalEnabled.length}/${totalPresetSources}`, meta: `中国 ${chinaEnabled.length} · 国际 ${globalEnabled.length}` },
+        ].map((item) => (
+          <div
+            key={item.label}
+            style={{
+              padding: 16,
+              borderRadius: 18,
+              border: "1px solid rgba(15,23,42,0.08)",
+              backgroundColor: "rgba(255,255,255,0.8)",
+              boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", lineHeight: 1.05 }}>{item.value}</div>
+            <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>{item.meta}</div>
+          </div>
+        ))}
+      </div>
 
       <div
         style={{
@@ -387,14 +530,17 @@ export default function AdminPage() {
           gap: 12,
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>展示设置</div>
-            <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
-              Dashboard 的新闻展示上限由这里统一控制
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>展示设置</div>
+              <div style={{ marginTop: 4, fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
+                Dashboard 的新闻展示上限由这里统一控制
+              </div>
             </div>
+          <div style={{ display: "grid", gap: 2, justifyItems: "end" }}>
+            <div style={{ fontSize: 12, color: "#64748b" }}>当前值：{settings.newsLimit}</div>
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>保存后立即同步到 API</div>
           </div>
-          <div style={{ fontSize: 12, color: "#64748b" }}>当前值：{settings.newsLimit}</div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
           {NEWS_LIMIT_OPTIONS.map((option) => {
@@ -422,7 +568,31 @@ export default function AdminPage() {
         </div>
       </section>
 
-      <div style={{ marginBottom: -4, color: "#475569", fontSize: 12 }}>{message}</div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 14px",
+          borderRadius: 16,
+          border: "1px solid rgba(15,23,42,0.08)",
+          backgroundColor: message.startsWith("操作失败") ? "rgba(254,242,242,0.95)" : "rgba(248,250,252,0.95)",
+          color: message.startsWith("操作失败") ? "#b91c1c" : "#475569",
+          fontSize: 12,
+          boxShadow: "0 8px 22px rgba(15,23,42,0.04)",
+        }}
+      >
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 999,
+            backgroundColor: message.startsWith("操作失败") ? "#ef4444" : "#10b981",
+            flex: "0 0 auto",
+          }}
+        />
+        <span>{message || "配置已就绪，继续调整来源或新闻展示上限。"}</span>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", gap: 16, flex: 1 }}>
         <section
