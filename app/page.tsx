@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { config } from "../lib/config";
-import { EmptyState, SectionHeader, StatCard } from "./_components/admin-ui";
+import { ActionButton, ActionLink, EmptyState, SectionHeader, StatCard } from "./_components/admin-ui";
 
 type Rule = {
   keyword: string;
@@ -905,24 +905,6 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
   const apiHealthLabel = lastConfigSyncAt ? "Connected" : "Idle";
   const configSyncDurationLabel = lastConfigSyncDurationMs === null ? "暂无" : `${lastConfigSyncDurationMs} ms`;
   const refreshDurationLabel = lastRefreshDurationMs === null ? "暂无" : `${lastRefreshDurationMs} ms`;
-  const headerButtonBaseStyle = {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(15,23,42,0.08)",
-    fontWeight: 700,
-    cursor: "pointer",
-  } as const;
-  const headerPrimaryButtonStyle = {
-    ...headerButtonBaseStyle,
-    backgroundColor: "#0f172a",
-    color: "#fff",
-  } as const;
-  const headerSecondaryButtonStyle = {
-    ...headerButtonBaseStyle,
-    backgroundColor: "#fff",
-    color: "#0f172a",
-  } as const;
-
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
       <div style={{ display: "grid", gap: 8 }}>
@@ -980,40 +962,32 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
     switch (activeWorkspace) {
       case "overview":
         return (
-          <button
-            type="button"
+          <ActionButton
             onClick={refreshNews}
             disabled={isRefreshingNews}
-            style={{
-              ...headerPrimaryButtonStyle,
-              minWidth: 168,
-              boxShadow: isRefreshingNews ? "none" : "0 8px 22px rgba(15,23,42,0.06)",
-              color: isRefreshingNews ? "#94a3b8" : "#fff",
-              cursor: isRefreshingNews ? "wait" : "pointer",
-            }}
+            tone="primary"
+            style={{ minWidth: 168 }}
           >
             {isRefreshingNews ? "刷新中..." : "刷新新闻 + 信号"}
-          </button>
+          </ActionButton>
         );
       case "rules":
         return (
-          <button
-            type="button"
+          <ActionButton
             onClick={resetRuleView}
-            style={headerSecondaryButtonStyle}
+            tone="secondary"
           >
             重置规则视图
-          </button>
+          </ActionButton>
         );
       case "settings":
         return (
-          <button
-            type="button"
+          <ActionButton
             onClick={() => updateNewsLimit(settings.newsLimit)}
-            style={headerSecondaryButtonStyle}
+            tone="secondary"
           >
             重新同步设置
-          </button>
+          </ActionButton>
         );
       default:
         return null;
@@ -1135,21 +1109,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           </div>
         </div>
 
-        <a
-          href={config.dashboardUrl}
-          style={{
-            padding: "12px 14px",
-            borderRadius: 14,
-            border: "1px solid rgba(15,23,42,0.08)",
-            backgroundColor: "#0f172a",
-            color: "#fff",
-            fontWeight: 700,
-            cursor: "pointer",
-            textDecoration: "none",
-          }}
-        >
+        <ActionLink href={config.dashboardUrl} tone="primary" style={{ minHeight: 44, padding: "12px 14px" }}>
           返回 Dashboard
-        </a>
+        </ActionLink>
       </aside>
 
       <main style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1315,22 +1277,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             title="最近 4 条操作记录"
             description="最新动作会先出现在这里，方便你快速判断系统状态。"
             action={
-              <Link
-                href={WORKSPACE_PATHS.activity}
-                onClick={() => setActiveWorkspace("activity")}
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "#fff",
-                  color: "#0f172a",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textDecoration: "none",
-                }}
-              >
+              <ActionLink href={WORKSPACE_PATHS.activity} onClick={() => setActiveWorkspace("activity")} tone="secondary" style={{ minHeight: 36, padding: "8px 10px" }}>
                 查看全部
-              </Link>
+              </ActionLink>
             }
           />
 

@@ -16,7 +16,7 @@
 
 - **Framework**: Next.js 16
 - **Language**: TypeScript
-- **Styling**: Inline CSS (兼容 Dashboard 风格)
+- **Styling**: Inline CSS + shared admin surface primitives
 - **API**: RESTful 接口调用 investment-api
 
 ## 快速开始
@@ -133,9 +133,13 @@ investment-admin/
 4. 新入口 href/跳转逻辑必须 `window.location.href = config.dashboardUrl`（或 `router.push(config.dashboardUrl)`），避免直接写死。
 5. 若线上跑出旧域结果，先检查配置是否生效（`console.log(config.dashboardUrl)`），然后 clear cache/redeploy。
 
-### 样式说明
+### 视觉规范
 
-采用内联样式保持与 Dashboard 一致的视觉风格。
+- 使用 `app/_components/admin-ui.tsx` 里的 `ActionButton`、`ActionLink`、`SectionHeader`、`StatCard`、`EmptyState`、`Surface` 作为首选视觉原语。
+- 每个工作区尽量只保留一个主操作按钮，其他动作尽量收进分组或次级区块。
+- 页面层级遵循 `标题区 -> 统计区 -> 说明区 -> 内容区` 的顺序，不在主区重复侧边导航里的入口。
+- 新页面优先复用 `var(--admin-*)` 主题变量，不直接复制新的一套颜色、阴影和圆角。
+- 如果需要新按钮样式，先扩展共享组件，不要在页面里单独堆一份新的 inline style。
 
 ## 部署
 

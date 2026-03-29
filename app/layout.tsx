@@ -12,10 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
-      <body className="bg-[radial-gradient(circle_at_top_left,#fef3c7_0%,#f8fafc_34%,#eef2ff_100%)] text-slate-900">
-        {children}
-      </body>
+    <html lang="zh-CN" className="h-full antialiased">
+      <body>{children}</body>
     </html>
   );
 }
