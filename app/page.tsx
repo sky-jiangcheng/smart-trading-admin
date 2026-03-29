@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { config } from "../lib/config";
 
 type Rule = {
@@ -75,6 +75,14 @@ const WORKSPACE_NAV_ITEMS: Array<{
   { key: "activity", label: "Activity", description: "最近操作与审计痕迹" },
   { key: "settings", label: "Settings", description: "展示上限与全局参数" },
 ];
+const WORKSPACE_PATHS: Record<Workspace, string> = {
+  overview: "/overview",
+  sources: "/sources",
+  thresholds: "/thresholds",
+  rules: "/rules",
+  activity: "/activity",
+  settings: "/settings",
+};
 
 const NEWS_LIMIT_OPTIONS = [50, 100, 200] as const;
 const LAST_REFRESH_STORAGE_KEY = "investment-admin:last-refresh-at";
@@ -384,16 +392,6 @@ function writeStoredThresholdSearch(value: string) {
   window.localStorage.setItem(THRESHOLD_SEARCH_STORAGE_KEY, value);
 }
 
-function readStoredWorkspace() {
-  if (typeof window === "undefined") {
-    return "overview" as Workspace;
-  }
-
-  const raw = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
-  const allowed: Workspace[] = ["overview", "sources", "thresholds", "rules", "activity", "settings"];
-  return allowed.includes(raw as Workspace) ? (raw as Workspace) : "overview";
-}
-
 function writeStoredWorkspace(value: Workspace) {
   if (typeof window === "undefined") {
     return;
@@ -402,16 +400,12 @@ function writeStoredWorkspace(value: Workspace) {
   window.localStorage.setItem(WORKSPACE_STORAGE_KEY, value);
 }
 
-function isWorkspace(value: string | null): value is Workspace {
-  return value === "overview" || value === "sources" || value === "thresholds" || value === "rules";
-}
-
-export default function AdminPage() {
+export default function AdminPage({ initialWorkspace = "overview" }: { initialWorkspace?: Workspace } = {}) {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [thresholds, setThresholds] = useState<ThresholdItem[]>([]);
   const [settings, setSettings] = useState<DashboardSettings>({ newsLimit: 200 });
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace>("overview");
+  const [activeWorkspace, setActiveWorkspace] = useState<Workspace>(initialWorkspace);
   const [newSource, setNewSource] = useState("");
   const [sourceSearch, setSourceSearch] = useState("");
   const [thresholdSearch, setThresholdSearch] = useState("");
@@ -430,14 +424,15 @@ export default function AdminPage() {
   const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
   const [lastConfigSyncAt, setLastConfigSyncAt] = useState<number | null>(null);
   const [lastRefreshSummary, setLastRefreshSummary] = useState<RefreshSummary | null>(null);
+  const [lastConfigSyncDurationMs, setLastConfigSyncDurationMs] = useState<number | null>(null);
+  const [lastRefreshDurationMs, setLastRefreshDurationMs] = useState<number | null>(null);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const auth = btoa(`${process.env.NEXT_PUBLIC_ADMIN_USER || "admin"}:${process.env.NEXT_PUBLIC_ADMIN_PASS || "password"}`);
 
   const loadConfig = useCallback(async () => {
+    const startedAt = Date.now();
     try {
       const [sResp, rResp, tResp, settingsResp] = await Promise.all([
         fetch(`${config.apiUrl}/admin/sources`, { headers: { Authorization: `Basic ${auth}` } }),
@@ -480,6 +475,7 @@ export default function AdminPage() {
         return next;
       });
       setMessage("配置加载成功");
+      setLastConfigSyncDurationMs(Date.now() - startedAt);
     } catch (error) {
       setMessage(`加载失败：${error}`);
     }
@@ -493,18 +489,11 @@ export default function AdminPage() {
     setLastRefreshSummary(readStoredRefreshSummary());
     setActivityLog(readStoredActivityLog());
     setThresholdSearch(readStoredThresholdSearch());
-    loadConfig();
-  }, [loadConfig]);
-
-  useEffect(() => {
-    const workspace = searchParams.get("workspace");
-    if (isWorkspace(workspace)) {
-      setActiveWorkspace(workspace);
-      return;
+    if (initialWorkspace) {
+      setActiveWorkspace(initialWorkspace);
     }
-
-    setActiveWorkspace(readStoredWorkspace());
-  }, [searchParams]);
+    loadConfig();
+  }, [initialWorkspace, loadConfig]);
 
   useEffect(() => {
     setSelectedRuleKeywords((current) => current.filter((keyword) => rules.some((rule) => rule.keyword === keyword)));
@@ -529,17 +518,6 @@ export default function AdminPage() {
   useEffect(() => {
     writeStoredWorkspace(activeWorkspace);
   }, [activeWorkspace]);
-
-  useEffect(() => {
-    const currentWorkspace = searchParams.get("workspace");
-    if (currentWorkspace === activeWorkspace) {
-      return;
-    }
-
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("workspace", activeWorkspace);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [activeWorkspace, pathname, router, searchParams]);
 
   async function requestAdmin(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
     try {
@@ -795,6 +773,7 @@ export default function AdminPage() {
 
   async function refreshNews() {
     setIsRefreshingNews(true);
+    const startedAt = Date.now();
     const res = await requestAdmin("/admin/refresh", "POST");
     setIsRefreshingNews(false);
 
@@ -809,6 +788,7 @@ export default function AdminPage() {
     const summary = { newsCount, signalCount, thresholdCount };
     setLastRefreshAt(refreshedAt);
     setLastRefreshSummary(summary);
+    setLastRefreshDurationMs(Date.now() - startedAt);
     writeStoredTimestamp(LAST_REFRESH_STORAGE_KEY, refreshedAt);
     writeStoredRefreshSummary(summary);
     appendActivity({
@@ -926,6 +906,14 @@ export default function AdminPage() {
     () => ["Admin", activeWorkspaceMeta.label].join(" / "),
     [activeWorkspaceMeta.label],
   );
+  const apiHealthLabel = lastConfigSyncAt ? "Connected" : "Idle";
+  const configSyncDurationLabel = lastConfigSyncDurationMs === null ? "暂无" : `${lastConfigSyncDurationMs} ms`;
+  const refreshDurationLabel = lastRefreshDurationMs === null ? "暂无" : `${lastRefreshDurationMs} ms`;
+
+  function navigateWorkspace(workspace: Workspace) {
+    setActiveWorkspace(workspace);
+    router.push(WORKSPACE_PATHS[workspace]);
+  }
 
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
@@ -1038,7 +1026,7 @@ export default function AdminPage() {
               <button
                 key={item.key}
                 type="button"
-                onClick={() => setActiveWorkspace(item.key)}
+                onClick={() => navigateWorkspace(item.key)}
                 style={{
                   textAlign: "left",
                   padding: "12px 14px",
@@ -1254,7 +1242,7 @@ export default function AdminPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveWorkspace("sources")}
+                  onClick={() => navigateWorkspace("sources")}
                   style={{
                     padding: "10px 12px",
                     borderRadius: 12,
@@ -1270,9 +1258,9 @@ export default function AdminPage() {
               </>
             )}
             {activeWorkspace === "sources" && (
-              <button
-                type="button"
-                onClick={() => setActiveWorkspace("settings")}
+                <button
+                  type="button"
+                  onClick={() => navigateWorkspace("settings")}
                 style={{
                   padding: "10px 12px",
                   borderRadius: 12,
@@ -1287,9 +1275,9 @@ export default function AdminPage() {
               </button>
             )}
             {activeWorkspace === "thresholds" && (
-              <button
-                type="button"
-                onClick={() => setActiveWorkspace("rules")}
+                <button
+                  type="button"
+                  onClick={() => navigateWorkspace("rules")}
                 style={{
                   padding: "10px 12px",
                   borderRadius: 12,
@@ -1321,9 +1309,9 @@ export default function AdminPage() {
               </button>
             )}
             {activeWorkspace === "activity" && (
-              <button
-                type="button"
-                onClick={() => setActiveWorkspace("overview")}
+                <button
+                  type="button"
+                  onClick={() => navigateWorkspace("overview")}
                 style={{
                   padding: "10px 12px",
                   borderRadius: 12,
@@ -1479,7 +1467,7 @@ export default function AdminPage() {
               <button
                 key={item.label}
                 type="button"
-                onClick={() => setActiveWorkspace("rules")}
+                onClick={() => navigateWorkspace("rules")}
                 style={{
                   padding: 14,
                   borderRadius: 16,
@@ -1517,7 +1505,7 @@ export default function AdminPage() {
             </div>
             <button
               type="button"
-              onClick={() => setActiveWorkspace("activity")}
+              onClick={() => navigateWorkspace("activity")}
               style={{
                 padding: "8px 10px",
                 borderRadius: 12,
@@ -1552,6 +1540,38 @@ export default function AdminPage() {
             )}
           </div>
         </div>
+      </section>
+
+      <section
+        style={{
+          display: isOverviewWorkspace ? "grid" : "none",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          gap: 12,
+        }}
+      >
+        {[
+          { label: "API 状态", value: apiHealthLabel, meta: "管理接口可达性" },
+          { label: "同步耗时", value: configSyncDurationLabel, meta: "最近一次配置拉取" },
+          { label: "刷新耗时", value: refreshDurationLabel, meta: "最近一次新闻刷新" },
+          { label: "最近刷新", value: lastRefreshLabel, meta: lastRefreshDetail },
+        ].map((item) => (
+          <div
+            key={item.label}
+            style={{
+              padding: 16,
+              borderRadius: 18,
+              border: "1px solid rgba(15,23,42,0.08)",
+              backgroundColor: "rgba(255,255,255,0.8)",
+              boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>{item.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.05 }}>{item.value}</div>
+            <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.4 }}>{item.meta}</div>
+          </div>
+        ))}
       </section>
 
       <section
