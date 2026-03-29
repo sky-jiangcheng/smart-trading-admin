@@ -108,6 +108,49 @@ const THRESHOLD_PRIORITY_LABELS: Record<ThresholdItem["priority"], string> = {
   P2: "观察",
 };
 
+const THRESHOLD_TAG_PRESETS = ["macro", "rates", "volatility", "risk", "momentum", "hedge", "fx", "equity", "breakout", "liquidity"] as const;
+
+const THRESHOLD_CATEGORY_ACCENTS: Record<
+  ThresholdCategory,
+  {
+    border: string;
+    background: string;
+    tint: string;
+    text: string;
+  }
+> = {
+  stock: {
+    border: "rgba(15,23,42,0.14)",
+    background: "linear-gradient(180deg, rgba(15,23,42,0.04) 0%, rgba(255,255,255,1) 100%)",
+    tint: "rgba(15,23,42,0.08)",
+    text: "#0f172a",
+  },
+  currency: {
+    border: "rgba(29,78,216,0.18)",
+    background: "linear-gradient(180deg, rgba(59,130,246,0.08) 0%, rgba(255,255,255,1) 100%)",
+    tint: "rgba(59,130,246,0.10)",
+    text: "#1d4ed8",
+  },
+  futures: {
+    border: "rgba(124,58,237,0.18)",
+    background: "linear-gradient(180deg, rgba(124,58,237,0.08) 0%, rgba(255,255,255,1) 100%)",
+    tint: "rgba(124,58,237,0.10)",
+    text: "#6d28d9",
+  },
+  crypto: {
+    border: "rgba(180,83,9,0.18)",
+    background: "linear-gradient(180deg, rgba(245,158,11,0.08) 0%, rgba(255,255,255,1) 100%)",
+    tint: "rgba(245,158,11,0.10)",
+    text: "#b45309",
+  },
+  macro: {
+    border: "rgba(71,85,105,0.18)",
+    background: "linear-gradient(180deg, rgba(71,85,105,0.05) 0%, rgba(255,255,255,1) 100%)",
+    tint: "rgba(71,85,105,0.10)",
+    text: "#334155",
+  },
+};
+
 const THRESHOLD_QUICK_PRESETS: Array<{
   label: string;
   description: string;
@@ -519,6 +562,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
   const [newSource, setNewSource] = useState("");
   const [sourceSearch, setSourceSearch] = useState("");
   const [thresholdSearch, setThresholdSearch] = useState("");
+  const [thresholdStatusFilter, setThresholdStatusFilter] = useState<"all" | "triggered" | "watching" | "above" | "below" | "p0">("all");
   const [newThreshold, setNewThreshold] = useState<ThresholdItem>(DEFAULT_THRESHOLD_FORM);
   const [ruleSearch, setRuleSearch] = useState("");
   const [ruleRiskFilter, setRuleRiskFilter] = useState<RuleRiskFilter>("all");
@@ -788,6 +832,30 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
     setMessage(`已载入预设：${preset.label}`);
   }
 
+  function applyThresholdShortcut(
+    next: Pick<ThresholdItem, "category" | "direction" | "priority"> & { unit?: string },
+  ) {
+    setNewThreshold((current) => ({
+      ...current,
+      category: next.category,
+      direction: next.direction,
+      priority: next.priority,
+      unit: next.unit || current.unit || "USD",
+    }));
+  }
+
+  function toggleThresholdTag(tag: string) {
+    setNewThreshold((current) => {
+      const hasTag = current.tags.includes(tag);
+      const nextTags = hasTag ? current.tags.filter((item) => item !== tag) : [...current.tags, tag];
+
+      return {
+        ...current,
+        tags: nextTags.slice(0, 6),
+      };
+    });
+  }
+
   async function removeThreshold(symbol: string, category?: string) {
     const res = await requestAdmin("/admin/thresholds", "DELETE", { symbol, category });
     const updated = res.thresholds as ThresholdItem[] | undefined;
@@ -961,6 +1029,28 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
     return `${getSourceLabel(source)} ${source}`.toLowerCase().includes(sourceSearchTerm);
   });
   const filteredThresholds = thresholds.filter((item) => {
+    const status = getThresholdStatus(item);
+
+    if (thresholdStatusFilter === "triggered" && !status.isTriggered) {
+      return false;
+    }
+
+    if (thresholdStatusFilter === "watching" && status.isTriggered) {
+      return false;
+    }
+
+    if (thresholdStatusFilter === "above" && item.direction !== "above") {
+      return false;
+    }
+
+    if (thresholdStatusFilter === "below" && item.direction !== "below") {
+      return false;
+    }
+
+    if (thresholdStatusFilter === "p0" && item.priority !== "P0") {
+      return false;
+    }
+
     if (!thresholdSearchTerm) {
       return true;
     }
@@ -1018,6 +1108,8 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
   const isRulesWorkspace = activeWorkspace === "rules";
   const isActivityWorkspace = activeWorkspace === "activity";
   const isSettingsWorkspace = activeWorkspace === "settings";
+  const thresholdDraftStatus = getThresholdStatus(newThreshold);
+  const thresholdDraftReady = Boolean(newThreshold.symbol.trim() && newThreshold.name.trim());
   const activeWorkspaceMeta = useMemo(
     () => WORKSPACE_NAV_ITEMS.find((item) => item.key === activeWorkspace) ?? WORKSPACE_NAV_ITEMS[0],
     [activeWorkspace],
@@ -1563,7 +1655,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           padding: 16,
           borderRadius: 24,
           border: "1px solid rgba(15,23,42,0.08)",
-          backgroundColor: "rgba(255,255,255,0.82)",
+          background: "rgba(255,255,255,0.82)",
           boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
           backdropFilter: "blur(16px)",
           gap: 14,
@@ -1573,9 +1665,41 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           eyebrow="市场阈值"
           title="阈值编辑台"
           description={`${thresholds.length} items · 已触发 ${thresholdTriggeredCount} · 核心 ${thresholdHighPriorityCount} · 上破 ${thresholdDirectionCounts.above} · 下破 ${thresholdDirectionCounts.below}`}
+          action={<div style={{ fontSize: 12, color: "#64748b" }}>{thresholdDraftReady ? "草稿可保存" : "请补齐 symbol 和 name"}</div>}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(168px, 1fr))", gap: 12 }}>
+          <StatCard
+            label="阈值总数"
+            value={thresholds.length}
+            meta="全部已载入的监控点"
+            tone="#0f172a"
+            background="rgba(255,255,255,0.88)"
+          />
+          <StatCard
+            label="已触发"
+            value={thresholdTriggeredCount}
+            meta="当前已经越过边界"
+            tone="#166534"
+            background="rgba(236,253,245,0.92)"
+          />
+          <StatCard
+            label="核心 P0"
+            value={thresholdHighPriorityCount}
+            meta="需要优先盯住的信号"
+            tone="#1d4ed8"
+            background="rgba(239,246,255,0.92)"
+          />
+          <StatCard
+            label="方向分布"
+            value={`${thresholdDirectionCounts.above} / ${thresholdDirectionCounts.below}`}
+            meta="上破 / 下破"
+            tone="#334155"
+            background="rgba(248,250,252,0.92)"
+          />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
           {THRESHOLD_QUICK_PRESETS.map((preset) => (
             <button
               key={preset.label}
@@ -1583,270 +1707,397 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               onClick={() => fillThresholdPreset(preset)}
               style={{
                 textAlign: "left",
-                padding: 12,
-                borderRadius: 16,
+                padding: 14,
+                borderRadius: 18,
                 border: "1px solid rgba(15,23,42,0.08)",
-                backgroundColor: "#fff",
+                background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%)",
                 boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
                 cursor: "pointer",
                 display: "grid",
-                gap: 4,
+                gap: 6,
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{preset.label}</div>
-              <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>{preset.description}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{preset.label}</div>
+                <div
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    backgroundColor: "rgba(15,23,42,0.06)",
+                    color: "#475569",
+                    fontSize: 10,
+                    fontWeight: 800,
+                  }}
+                >
+                  模板
+                </div>
+              </div>
+              <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>{preset.description}</div>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>{preset.template.symbol} · {preset.template.name}</div>
             </button>
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(340px, 0.9fr) minmax(0, 1.1fr)", gap: 14, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(380px, 0.92fr) minmax(0, 1.08fr)", gap: 14, alignItems: "start" }}>
           <div
             style={{
-              padding: 14,
-              borderRadius: 20,
-              border: "1px solid rgba(15,23,42,0.06)",
-              backgroundColor: "rgba(248,250,252,0.92)",
-              display: "grid",
-              gap: 12,
-              alignContent: "start",
               position: "sticky",
               top: 16,
               alignSelf: "start",
+              padding: 16,
+              borderRadius: 24,
+              border: "1px solid rgba(15,23,42,0.06)",
+              background: "linear-gradient(180deg, rgba(248,250,252,0.96) 0%, rgba(255,255,255,0.92) 100%)",
+              boxShadow: "0 18px 36px rgba(15,23,42,0.05)",
+              display: "grid",
+              gap: 14,
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ display: "grid", gap: 2 }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>编辑器</div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>先选预设，再微调关键字段。</div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>先选预设，再用少量辅助控件完成配置。</div>
               </div>
-              <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" }}>
-                {newThreshold.symbol ? "预设已载入" : "就绪"}
+              <div
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: 999,
+                  backgroundColor: thresholdDraftReady ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.12)",
+                  color: thresholdDraftReady ? "#166534" : "#b45309",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {thresholdDraftReady ? "Ready" : "Draft"}
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-              {([
-                { label: "股票", value: "stock", unit: "USD", direction: "above" },
-                { label: "货币", value: "currency", unit: "USD", direction: "above" },
-                { label: "期货", value: "futures", unit: "pts", direction: "below" },
-                { label: "加密", value: "crypto", unit: "USD", direction: "above" },
-                { label: "宏观", value: "macro", unit: "pts", direction: "above" },
-                { label: "观察", value: "P2", unit: newThreshold.unit || "USD", direction: newThreshold.direction },
-              ] as Array<{ label: string; value: ThresholdItem["category"] | ThresholdItem["priority"]; unit: string; direction: ThresholdDirection }>).map((chip) => {
-                const active = chip.value === newThreshold.category || chip.value === newThreshold.priority;
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>类别快捷</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                {[
+                  { label: "股票", category: "stock" as ThresholdCategory, unit: "USD", direction: "above" as ThresholdDirection, priority: "P1" as ThresholdItem["priority"] },
+                  { label: "货币", category: "currency" as ThresholdCategory, unit: "USD", direction: "above" as ThresholdDirection, priority: "P1" as ThresholdItem["priority"] },
+                  { label: "期货", category: "futures" as ThresholdCategory, unit: "pts", direction: "below" as ThresholdDirection, priority: "P1" as ThresholdItem["priority"] },
+                  { label: "加密", category: "crypto" as ThresholdCategory, unit: "USD", direction: "above" as ThresholdDirection, priority: "P1" as ThresholdItem["priority"] },
+                  { label: "宏观", category: "macro" as ThresholdCategory, unit: "pts", direction: "above" as ThresholdDirection, priority: "P0" as ThresholdItem["priority"] },
+                  { label: "观察", category: newThreshold.category, unit: newThreshold.unit || "USD", direction: newThreshold.direction, priority: "P2" as ThresholdItem["priority"] },
+                ].map((chip) => {
+                  const active = chip.label === "观察"
+                    ? newThreshold.priority === "P2"
+                    : newThreshold.category === chip.category;
+
+                  return (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => applyThresholdShortcut({ category: chip.category, direction: chip.direction, priority: chip.priority, unit: chip.unit })}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                        backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                        color: "#0f172a",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontSize: 11,
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>方向和优先级</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                {[
+                  { label: "上破", value: "above" as ThresholdDirection },
+                  { label: "下破", value: "below" as ThresholdDirection },
+                ].map((chip) => {
+                  const active = newThreshold.direction === chip.value;
+                  return (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => setNewThreshold((current) => ({ ...current, direction: chip.value }))}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                        backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                        color: "#0f172a",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontSize: 11,
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  );
+                })}
+                {([
+                  { label: "P0", value: "P0" as ThresholdItem["priority"] },
+                  { label: "P1", value: "P1" as ThresholdItem["priority"] },
+                  { label: "P2", value: "P2" as ThresholdItem["priority"] },
+                ]).map((chip) => {
+                  const active = newThreshold.priority === chip.value;
+                  return (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => setNewThreshold((current) => ({ ...current, priority: chip.value }))}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                        backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                        color: "#0f172a",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontSize: 11,
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+              {[
+                { label: "Symbol", value: newThreshold.symbol, onChange: (value: string) => setNewThreshold((current) => ({ ...current, symbol: value.toUpperCase() })), placeholder: "SPX" },
+                { label: "Name", value: newThreshold.name, onChange: (value: string) => setNewThreshold((current) => ({ ...current, name: value })), placeholder: "S&P 500 Index" },
+                {
+                  label: "Category",
+                  value: newThreshold.category,
+                  onChange: (value: string) => {
+                    const nextCategory = value as ThresholdCategory;
+                    setNewThreshold((current) => ({
+                      ...current,
+                      category: nextCategory,
+                      unit: nextCategory === "macro" ? "pts" : "USD",
+                    }));
+                  },
+                  placeholder: "",
+                },
+                { label: "Market Symbol", value: newThreshold.marketSymbol, onChange: (value: string) => setNewThreshold((current) => ({ ...current, marketSymbol: value.toUpperCase() })), placeholder: "SPX" },
+                { label: "Current", value: String(newThreshold.currentValue), onChange: (value: string) => setNewThreshold((current) => ({ ...current, currentValue: Number(value) })), placeholder: "0" },
+                { label: "Threshold", value: String(newThreshold.thresholdValue), onChange: (value: string) => setNewThreshold((current) => ({ ...current, thresholdValue: Number(value) })), placeholder: "0" },
+                { label: "Unit", value: newThreshold.unit, onChange: (value: string) => setNewThreshold((current) => ({ ...current, unit: value })), placeholder: "USD" },
+                { label: "Tags", value: newThreshold.tags.join(", "), onChange: (value: string) => setNewThreshold((current) => ({ ...current, tags: value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 6) })), placeholder: "macro, rates" },
+              ].map((field) => {
+                const isSelect = field.label === "Category";
                 return (
-                  <button
-                    key={chip.label}
-                    type="button"
-                    onClick={() =>
-                      setNewThreshold((current) => ({
-                        ...current,
-                        ...(chip.label !== "观察"
-                          ? {
-                              category: chip.value as ThresholdCategory,
-                              unit: chip.unit,
-                              direction: chip.direction,
-                            }
-                          : {
-                              priority: "P2",
-                            }),
-                      }))
-                    }
-                    style={{
-                      padding: "8px 10px",
-                      borderRadius: 12,
-                      border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
-                      backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
-                      color: "#0f172a",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontSize: 11,
-                    }}
-                  >
-                    {chip.label}
-                  </button>
+                  <label key={field.label} style={{ display: "grid", gap: 6 }}>
+                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>{field.label}</span>
+                    {isSelect ? (
+                      <select
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        style={{
+                          minWidth: 0,
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          border: "1px solid rgba(15,23,42,0.12)",
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        {Object.entries(THRESHOLD_CATEGORY_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        placeholder={field.placeholder}
+                        type={field.label === "Current" || field.label === "Threshold" ? "number" : "text"}
+                        step={field.label === "Current" || field.label === "Threshold" ? "any" : undefined}
+                        style={{
+                          minWidth: 0,
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          border: "1px solid rgba(15,23,42,0.12)",
+                          backgroundColor: "#fff",
+                        }}
+                      />
+                    )}
+                  </label>
                 );
               })}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-              <input
-                value={newThreshold.symbol}
-                onChange={(e) => setNewThreshold((current) => ({ ...current, symbol: e.target.value.toUpperCase() }))}
-                placeholder="Symbol"
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              />
-              <input
-                value={newThreshold.name}
-                onChange={(e) => setNewThreshold((current) => ({ ...current, name: e.target.value }))}
-                placeholder="Name"
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              />
-              <select
-                value={newThreshold.category}
-                onChange={(e) => {
-                  const nextCategory = e.target.value as ThresholdCategory;
-                  setNewThreshold((current) => ({
-                    ...current,
-                    category: nextCategory,
-                    unit: nextCategory === "currency" ? "USD" : nextCategory === "crypto" ? "USD" : nextCategory === "macro" ? "pts" : current.unit || "USD",
-                  }));
-                }}
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              >
-                {Object.entries(THRESHOLD_CATEGORY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={newThreshold.direction}
-                onChange={(e) => setNewThreshold((current) => ({ ...current, direction: e.target.value as ThresholdDirection }))}
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              >
-                <option value="above">上破阈值</option>
-                <option value="below">下破阈值</option>
-              </select>
-              <input
-                value={newThreshold.marketSymbol}
-                onChange={(e) => setNewThreshold((current) => ({ ...current, marketSymbol: e.target.value.toUpperCase() }))}
-                placeholder="Market symbol"
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              />
-              <select
-                value={newThreshold.priority}
-                onChange={(e) => setNewThreshold((current) => ({ ...current, priority: e.target.value as ThresholdItem["priority"] }))}
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              >
-                {Object.entries(THRESHOLD_PRIORITY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={newThreshold.currentValue}
-                onChange={(e) => setNewThreshold((current) => ({ ...current, currentValue: Number(e.target.value) }))}
-                type="number"
-                step="any"
-                placeholder="Current"
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              />
-              <input
-                value={newThreshold.thresholdValue}
-                onChange={(e) => setNewThreshold((current) => ({ ...current, thresholdValue: Number(e.target.value) }))}
-                type="number"
-                step="any"
-                placeholder="Threshold"
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              />
-              <input
-                value={newThreshold.unit}
-                onChange={(e) => setNewThreshold((current) => ({ ...current, unit: e.target.value }))}
-                placeholder="Unit"
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              />
-              <input
-                value={newThreshold.tags.join(", ")}
-                onChange={(e) =>
-                  setNewThreshold((current) => ({
-                    ...current,
-                    tags: e.target.value
-                      .split(",")
-                      .map((tag) => tag.trim())
-                      .filter((tag) => tag.length > 0)
-                      .slice(0, 6),
-                  }))
-                }
-                placeholder="Tags, comma separated"
-                style={{ minWidth: 0, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(15,23,42,0.12)", backgroundColor: "#fff" }}
-              />
-              <button
-                type="button"
-                onClick={addThreshold}
-                style={{
-                  minWidth: 0,
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  backgroundColor: "#0f172a",
-                  color: "#fff",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                保存阈值
-              </button>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>常用标签</div>
+                <div style={{ fontSize: 10, color: "#94a3b8" }}>点击可快速追加 / 取消</div>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {THRESHOLD_TAG_PRESETS.map((tag) => {
+                  const active = newThreshold.tags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleThresholdTag(tag)}
+                      style={{
+                        padding: "7px 10px",
+                        borderRadius: 999,
+                        border: `1px solid ${active ? "rgba(37,99,235,0.22)" : "rgba(15,23,42,0.08)"}`,
+                        backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                        color: active ? "#1d4ed8" : "#0f172a",
+                        fontWeight: 700,
+                        fontSize: 11,
+                        cursor: "pointer",
+                      }}
+                    >
+                      #{tag}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <textarea
-              value={newThreshold.note}
-              onChange={(e) => setNewThreshold((current) => ({ ...current, note: e.target.value }))}
-              placeholder="说明 / 解释信号为何重要"
-              rows={4}
+            <label style={{ display: "grid", gap: 6 }}>
+              <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>说明</span>
+              <textarea
+                value={newThreshold.note}
+                onChange={(e) => setNewThreshold((current) => ({ ...current, note: e.target.value }))}
+                placeholder="解释这条阈值为什么重要"
+                rows={4}
+                style={{
+                  width: "100%",
+                  resize: "vertical",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  backgroundColor: "#fff",
+                  fontFamily: "inherit",
+                }}
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={addThreshold}
               style={{
-                width: "100%",
-                resize: "vertical",
-                padding: "10px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(15,23,42,0.12)",
-                backgroundColor: "#fff",
-                fontFamily: "inherit",
+                minWidth: 0,
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "1px solid rgba(15,23,42,0.08)",
+                backgroundColor: "#0f172a",
+                color: "#fff",
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 12px 24px rgba(15,23,42,0.10)",
               }}
-            />
+            >
+              保存阈值
+            </button>
+
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 18,
+                border: "1px solid rgba(15,23,42,0.08)",
+                backgroundColor: "rgba(255,255,255,0.9)",
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>草稿预览</div>
+                <div style={{ fontSize: 10, color: "#94a3b8" }}>{thresholdDraftReady ? "可以直接保存" : "至少需要 symbol 和 name"}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontWeight: 800, color: "#0f172a" }}>{newThreshold.symbol || "SYMBOL"}</span>
+                <span style={{ fontSize: 11, color: "#64748b" }}>{newThreshold.name || "Name"}</span>
+                <span style={{ padding: "3px 8px", borderRadius: 999, backgroundColor: "rgba(15,23,42,0.06)", fontSize: 10, fontWeight: 800 }}>
+                  {THRESHOLD_PRIORITY_LABELS[newThreshold.priority]}
+                </span>
+                <span style={{ padding: "3px 8px", borderRadius: 999, backgroundColor: "rgba(15,23,42,0.06)", fontSize: 10, fontWeight: 800 }}>
+                  {THRESHOLD_CATEGORY_LABELS[newThreshold.category]}
+                </span>
+                <span style={{ padding: "3px 8px", borderRadius: 999, backgroundColor: "rgba(15,23,42,0.06)", fontSize: 10, fontWeight: 800 }}>
+                  {THRESHOLD_DIRECTION_LABELS[newThreshold.direction]}
+                </span>
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", lineHeight: 1.05 }}>
+                {formatThresholdNumber(newThreshold.currentValue)} / {formatThresholdNumber(newThreshold.thresholdValue)} {newThreshold.unit || "USD"}
+              </div>
+              <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5 }}>
+                {newThreshold.note || "用一句话解释触发后的业务含义，让这条阈值更容易被团队理解。"}
+              </div>
+              <div style={{ fontSize: 10, color: "#94a3b8" }}>
+                当前偏离 {thresholdDraftStatus.distance >= 0 ? "+" : ""}
+                {formatThresholdNumber(thresholdDraftStatus.distance)} ({thresholdDraftStatus.percent.toFixed(1)}%)
+              </div>
+            </div>
           </div>
 
           <div
             style={{
-              padding: 14,
-              borderRadius: 20,
+              padding: 16,
+              borderRadius: 24,
               border: "1px solid rgba(15,23,42,0.06)",
-              backgroundColor: "rgba(255,255,255,0.92)",
+              background: "rgba(255,255,255,0.92)",
+              boxShadow: "0 18px 36px rgba(15,23,42,0.04)",
               display: "grid",
               gap: 12,
               minHeight: 0,
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div style={{ display: "grid", gap: 2 }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>阈值流</div>
-                <div style={{ fontSize: 11, color: "#64748b" }}>卡片自动换行，超过两条也不会被挤掉。</div>
+                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>列表自动换行，卡片会按状态和类别保持层级感。</div>
               </div>
               <div style={{ display: "grid", gap: 2, justifyItems: "end" }}>
-                <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
                   {filteredThresholds.length}/{thresholds.length} 条
                 </div>
-                <div style={{ fontSize: 10, color: "#94a3b8" }}>可搜索 symbol、name、note、tags</div>
+                <div style={{ fontSize: 10, color: "#94a3b8" }}>支持 symbol / name / note / tags 检索</div>
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {[
-                { label: "全部", count: thresholds.length },
-                { label: "P0", count: thresholdHighPriorityCount },
-                { label: "已触发", count: thresholdTriggeredCount },
-                { label: "上破", count: thresholdDirectionCounts.above },
-                { label: "下破", count: thresholdDirectionCounts.below },
-              ].map((chip) => (
-                <button
-                  key={chip.label}
-                  type="button"
-                  onClick={() => setThresholdSearch(chip.label === "全部" ? "" : chip.label)}
-                  style={{
-                    padding: "7px 10px",
-                    borderRadius: 999,
-                    border: "1px solid rgba(15,23,42,0.08)",
-                    backgroundColor: "#fff",
-                    color: "#0f172a",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {chip.label} {chip.count}
-                </button>
-              ))}
+                { label: "全部", value: "all" as const, count: thresholds.length },
+                { label: "已触发", value: "triggered" as const, count: thresholdTriggeredCount },
+                { label: "观察中", value: "watching" as const, count: thresholds.length - thresholdTriggeredCount },
+                { label: "上破", value: "above" as const, count: thresholdDirectionCounts.above },
+                { label: "下破", value: "below" as const, count: thresholdDirectionCounts.below },
+                { label: "P0", value: "p0" as const, count: thresholdHighPriorityCount },
+              ].map((chip) => {
+                const active = thresholdStatusFilter === chip.value;
+                return (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => setThresholdStatusFilter(chip.value)}
+                    style={{
+                      padding: "7px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${active ? "rgba(37,99,235,0.24)" : "rgba(15,23,42,0.08)"}`,
+                      backgroundColor: active ? "rgba(239,246,255,0.95)" : "#fff",
+                      color: "#0f172a",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {chip.label} {chip.count}
+                  </button>
+                );
+              })}
             </div>
 
             <input
@@ -1855,7 +2106,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               placeholder="搜索 symbol / name / note / category / tags"
               style={{
                 width: "100%",
-                padding: "10px 12px",
+                padding: "11px 12px",
                 borderRadius: 12,
                 border: "1px solid rgba(15,23,42,0.12)",
                 backgroundColor: "#fff",
@@ -1863,19 +2114,10 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
               }}
             />
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 10, alignItems: "stretch" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12, alignItems: "stretch" }}>
               {filteredThresholds.map((item) => {
                 const status = getThresholdStatus(item);
-                const color =
-                  item.category === "stock"
-                    ? "#0f172a"
-                    : item.category === "currency"
-                      ? "#1d4ed8"
-                      : item.category === "futures"
-                        ? "#7c3aed"
-                        : item.category === "crypto"
-                          ? "#b45309"
-                          : "#475569";
+                const accent = THRESHOLD_CATEGORY_ACCENTS[item.category];
 
                 return (
                   <div
@@ -1883,24 +2125,35 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                     style={{
                       padding: 14,
                       borderRadius: 18,
-                      border: "1px solid rgba(15,23,42,0.08)",
-                      backgroundColor: "#fff",
+                      border: `1px solid ${accent.border}`,
+                      background: accent.background,
                       display: "grid",
                       gap: 10,
-                      boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
+                      boxShadow: "0 14px 30px rgba(15,23,42,0.04)",
                       minHeight: "100%",
+                      position: "relative",
+                      overflow: "hidden",
                     }}
                   >
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: "0 auto 0 0",
+                        width: 4,
+                        background: accent.tint,
+                      }}
+                    />
+
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                          <span style={{ fontWeight: 800, color: "#0f172a" }}>{item.symbol}</span>
-                          <span style={{ fontSize: 11, color }}>{item.name}</span>
+                          <span style={{ fontWeight: 800, color: accent.text }}>{item.symbol}</span>
+                          <span style={{ fontSize: 11, color: "#334155", fontWeight: 700 }}>{item.name}</span>
                           <span style={{ padding: "3px 8px", borderRadius: 999, backgroundColor: "rgba(15,23,42,0.06)", color: "#475569", fontSize: 10, fontWeight: 800 }}>
                             {THRESHOLD_PRIORITY_LABELS[item.priority]}
                           </span>
                         </div>
-                        <div style={{ marginTop: 3, fontSize: 11, color: "#64748b" }}>
+                        <div style={{ marginTop: 4, fontSize: 11, color: "#64748b" }}>
                           {THRESHOLD_CATEGORY_LABELS[item.category]} · {THRESHOLD_DIRECTION_LABELS[item.direction]}
                           {item.marketSymbol ? ` · ${item.marketSymbol}` : ""}
                         </div>
@@ -1912,18 +2165,31 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                           border: "none",
                           background: "transparent",
                           color: "#ef4444",
-                          fontWeight: 700,
+                          fontWeight: 800,
                           cursor: "pointer",
+                          padding: 0,
                         }}
                       >
                         删除
                       </button>
                     </div>
 
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                      <div style={{ padding: 10, borderRadius: 14, backgroundColor: "#fff", border: "1px solid rgba(15,23,42,0.06)" }}>
+                        <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700 }}>当前值</div>
+                        <div style={{ marginTop: 4, fontSize: 16, fontWeight: 800, color: "#0f172a", lineHeight: 1.1 }}>
+                          {formatThresholdNumber(item.currentValue)} {item.unit}
+                        </div>
+                      </div>
+                      <div style={{ padding: 10, borderRadius: 14, backgroundColor: "#fff", border: "1px solid rgba(15,23,42,0.06)" }}>
+                        <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700 }}>阈值</div>
+                        <div style={{ marginTop: 4, fontSize: 16, fontWeight: 800, color: "#0f172a", lineHeight: 1.1 }}>
+                          {formatThresholdNumber(item.thresholdValue)} {item.unit}
+                        </div>
+                      </div>
+                    </div>
+
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 12 }}>
-                      <span style={{ fontWeight: 800, color: "#0f172a" }}>
-                        {formatThresholdNumber(item.currentValue)} / {formatThresholdNumber(item.thresholdValue)} {item.unit}
-                      </span>
                       <span
                         style={{
                           padding: "3px 8px",
@@ -1936,10 +2202,11 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                       >
                         {status.label}
                       </span>
-                      <span style={{ color: "#64748b" }}>
+                      <span style={{ color: "#475569" }}>
                         {status.distance >= 0 ? "+" : ""}
                         {formatThresholdNumber(status.distance)} ({status.percent.toFixed(1)}%)
                       </span>
+                      <span style={{ color: "#64748b" }}>{item.unit}</span>
                     </div>
 
                     {item.tags.length > 0 && (
@@ -1959,11 +2226,19 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                             #{tag}
                           </span>
                         ))}
+                        {item.tags.length > 4 && (
+                          <span style={{ padding: "3px 8px", borderRadius: 999, backgroundColor: "rgba(15,23,42,0.05)", color: "#64748b", fontSize: 10, fontWeight: 800 }}>
+                            +{item.tags.length - 4}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.45 }}>{item.note || "暂无说明"}</div>
-                    <div style={{ fontSize: 10, color: "#94a3b8" }}>更新于 {formatRelativeTime(Date.parse(item.updatedAt))}</div>
+                    <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5 }}>{item.note || "暂无说明"}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", fontSize: 10, color: "#94a3b8" }}>
+                      <span>更新于 {formatRelativeTime(Date.parse(item.updatedAt))}</span>
+                      <span>{item.marketSymbol || item.symbol}</span>
+                    </div>
                   </div>
                 );
               })}
@@ -1971,7 +2246,7 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
                 <div style={{ gridColumn: "1 / -1" }}>
                   <EmptyState
                     title={thresholds.length === 0 ? "暂无阈值" : "没有匹配的阈值"}
-                    description={thresholds.length === 0 ? "先用左侧预设填入一条，再做微调。" : "调整搜索条件后再试。"}
+                    description={thresholds.length === 0 ? "先用左侧预设填入一条，再做微调。" : "调整筛选条件后再试。"}
                   />
                 </div>
               )}
