@@ -10,6 +10,18 @@ type Rule = {
   reason: string;
 };
 
+type SourcePreset = {
+  label: string;
+  url: string;
+};
+
+const SOURCE_PRESETS: SourcePreset[] = [
+  { label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
+  { label: "人民网 - 时政", url: "http://www.people.com.cn/rss/politics.xml" },
+  { label: "中国日报 - 中国新闻", url: "http://www.chinadaily.com.cn/rss/china_rss.xml" },
+  { label: "36氪 - 最新快讯", url: "https://www.36kr.com/feed-newsflash" },
+];
+
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
@@ -22,8 +34,8 @@ export default function AdminPage() {
   const loadConfig = useCallback(async () => {
     try {
       const [sResp, rResp] = await Promise.all([
-        fetch("http://localhost:3001/admin/sources", { headers: { Authorization: `Basic ${auth}` } }),
-        fetch("http://localhost:3001/admin/rules", { headers: { Authorization: `Basic ${auth}` } }),
+        fetch(`${config.apiUrl}/admin/sources`, { headers: { Authorization: `Basic ${auth}` } }),
+        fetch(`${config.apiUrl}/admin/rules`, { headers: { Authorization: `Basic ${auth}` } }),
       ]);
 
       if (!sResp.ok || !rResp.ok) {
@@ -48,7 +60,7 @@ export default function AdminPage() {
 
   async function requestAdmin(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
     try {
-      const res = await fetch(`http://localhost:3001${path}`, {
+      const res = await fetch(`${config.apiUrl}${path}`, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -75,6 +87,13 @@ export default function AdminPage() {
     const updated = res.sources as string[] | undefined;
     if (updated) setSources(updated);
     setNewSource("");
+  }
+
+  async function addPresetSource(url: string) {
+    if (sources.includes(url)) return;
+    const res = await requestAdmin("/admin/sources", "POST", { url });
+    const updated = res.sources as string[] | undefined;
+    if (updated) setSources(updated);
   }
 
   async function removeSource(url: string) {
@@ -117,6 +136,9 @@ export default function AdminPage() {
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
         <section style={{ flex: 1, minWidth: 280 }}>
           <h2>RSS 数据源</h2>
+          <p style={{ marginTop: 0, color: "#666", fontSize: 13, lineHeight: 1.5 }}>
+            已启用的多个 RSS 源会由 API 同时聚合成一个新闻流，不再只取单一来源。
+          </p>
           <ul>
             {sources.map((source) => (
               <li key={source} style={{ marginBottom: 6 }}>
@@ -134,6 +156,35 @@ export default function AdminPage() {
             style={{ width: "100%", padding: 6, marginBottom: 6 }}
           />
           <button onClick={addSource}>添加数据源</button>
+          <div style={{ marginTop: 16 }}>
+            <div style={{ marginBottom: 8, fontSize: 13, color: "#333", fontWeight: 600 }}>推荐中国来源</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {SOURCE_PRESETS.map((preset) => {
+                const alreadyAdded = sources.includes(preset.url);
+
+                return (
+                  <button
+                    key={preset.url}
+                    type="button"
+                    disabled={alreadyAdded}
+                    onClick={() => addPresetSource(preset.url)}
+                    style={{
+                      textAlign: "left",
+                      padding: "8px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #ccc",
+                      backgroundColor: alreadyAdded ? "#f3f3f3" : "#fff",
+                      color: alreadyAdded ? "#888" : "#111",
+                      cursor: alreadyAdded ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600 }}>{preset.label}</div>
+                    <div style={{ fontSize: 12, marginTop: 2, wordBreak: "break-all" }}>{preset.url}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </section>
 
         <section style={{ flex: 1, minWidth: 280 }}>
