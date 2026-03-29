@@ -151,13 +151,13 @@ export function ActionLink({ href, tone = "secondary", style, children, ...props
 
 export function SectionHeader({ eyebrow, title, description, action }: SectionHeaderProps) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
       <div style={{ minWidth: 0 }}>
         <div
           style={{
             display: "inline-flex",
             alignItems: "center",
-            padding: "3px 9px",
+            padding: "3px 8px",
             borderRadius: 999,
             backgroundColor: "var(--admin-primary-soft)",
             color: "var(--admin-muted)",
@@ -169,10 +169,10 @@ export function SectionHeader({ eyebrow, title, description, action }: SectionHe
         >
           {eyebrow}
         </div>
-        <div style={{ marginTop: 8, fontSize: 16, color: "var(--admin-text)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em" }}>
+        <div style={{ marginTop: 6, fontSize: 15, color: "var(--admin-text)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em" }}>
           {title}
         </div>
-        <div style={{ marginTop: 4, maxWidth: 760, fontSize: 11, color: "var(--admin-muted)", lineHeight: 1.5 }}>
+        <div style={{ marginTop: 3, maxWidth: 760, fontSize: 10.5, color: "var(--admin-muted)", lineHeight: 1.45 }}>
           {description}
         </div>
       </div>
@@ -185,22 +185,22 @@ export function StatCard({ label, value, meta, tone = "#0f172a", background = "r
   return (
     <div
       style={{
-        padding: 14,
-        borderRadius: 18,
+        padding: 12,
+        borderRadius: 16,
         border: "1px solid var(--admin-border)",
         backgroundColor: background,
         boxShadow: "var(--admin-shadow)",
         display: "grid",
-        gap: 6,
+        gap: 4,
         backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.64) 0%, rgba(255,255,255,0) 100%)",
-        borderTop: `3px solid ${tone}`,
-        minHeight: 96,
+        borderTop: `2px solid ${tone}`,
+        minHeight: 84,
         overflow: "hidden",
       }}
     >
-      <div style={{ fontSize: 10, color: "var(--admin-muted-strong)", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 800, color: tone, lineHeight: 1.05, letterSpacing: "-0.02em" }}>{value}</div>
-      {meta ? <div style={{ fontSize: 11, color: "var(--admin-muted)", lineHeight: 1.4 }}>{meta}</div> : null}
+      <div style={{ fontSize: 9.5, color: "var(--admin-muted-strong)", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontSize: 17, fontWeight: 800, color: tone, lineHeight: 1.02, letterSpacing: "-0.02em" }}>{value}</div>
+      {meta ? <div style={{ fontSize: 10.5, color: "var(--admin-muted)", lineHeight: 1.35 }}>{meta}</div> : null}
     </div>
   );
 }
