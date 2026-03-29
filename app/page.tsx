@@ -34,6 +34,8 @@ const NEWS_LIMIT_OPTIONS = [50, 100, 200] as const;
 const LAST_REFRESH_STORAGE_KEY = "investment-admin:last-refresh-at";
 const LAST_SYNC_STORAGE_KEY = "investment-admin:last-config-sync-at";
 const LAST_REFRESH_SUMMARY_KEY = "investment-admin:last-refresh-summary";
+const RULE_RISK_FILTER_STORAGE_KEY = "investment-admin:rule-risk-filter";
+const RULE_COLLAPSED_STORAGE_KEY = "investment-admin:rule-collapsed-state";
 
 const SOURCE_PRESETS: SourcePreset[] = [
   { group: "china", section: "china-news", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
@@ -162,6 +164,69 @@ function writeStoredRefreshSummary(summary: RefreshSummary | null) {
   window.localStorage.setItem(LAST_REFRESH_SUMMARY_KEY, JSON.stringify(summary));
 }
 
+function readStoredRuleRiskFilter() {
+  if (typeof window === "undefined") {
+    return "all" as RuleRiskFilter;
+  }
+
+  const raw = window.localStorage.getItem(RULE_RISK_FILTER_STORAGE_KEY);
+  if (!raw || raw === "all" || raw === "bullish" || raw === "bearish" || raw === "neutral") {
+    return (raw as RuleRiskFilter) || "all";
+  }
+
+  return "all";
+}
+
+function writeStoredRuleRiskFilter(filter: RuleRiskFilter) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(RULE_RISK_FILTER_STORAGE_KEY, filter);
+}
+
+function readStoredCollapsedRuleGroups() {
+  if (typeof window === "undefined") {
+    return {
+      bullish: false,
+      bearish: false,
+      neutral: false,
+    };
+  }
+
+  const raw = window.localStorage.getItem(RULE_COLLAPSED_STORAGE_KEY);
+  if (!raw) {
+    return {
+      bullish: false,
+      bearish: false,
+      neutral: false,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Record<Exclude<RuleRiskFilter, "all">, boolean>;
+    return {
+      bullish: Boolean(parsed?.bullish),
+      bearish: Boolean(parsed?.bearish),
+      neutral: Boolean(parsed?.neutral),
+    };
+  } catch {
+    return {
+      bullish: false,
+      bearish: false,
+      neutral: false,
+    };
+  }
+}
+
+function writeStoredCollapsedRuleGroups(value: Record<Exclude<RuleRiskFilter, "all">, boolean>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(RULE_COLLAPSED_STORAGE_KEY, JSON.stringify(value));
+}
+
 export default function AdminPage() {
   const [sources, setSources] = useState<string[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
@@ -217,6 +282,8 @@ export default function AdminPage() {
   }, [auth]);
 
   useEffect(() => {
+    setRuleRiskFilter(readStoredRuleRiskFilter());
+    setCollapsedRuleGroups(readStoredCollapsedRuleGroups());
     setLastRefreshAt(readStoredTimestamp(LAST_REFRESH_STORAGE_KEY));
     setLastConfigSyncAt(readStoredTimestamp(LAST_SYNC_STORAGE_KEY));
     setLastRefreshSummary(readStoredRefreshSummary());
@@ -226,6 +293,14 @@ export default function AdminPage() {
   useEffect(() => {
     setSelectedRuleKeywords((current) => current.filter((keyword) => rules.some((rule) => rule.keyword === keyword)));
   }, [rules]);
+
+  useEffect(() => {
+    writeStoredRuleRiskFilter(ruleRiskFilter);
+  }, [ruleRiskFilter]);
+
+  useEffect(() => {
+    writeStoredCollapsedRuleGroups(collapsedRuleGroups);
+  }, [collapsedRuleGroups]);
 
   async function requestAdmin(path: string, method: string, body?: unknown): Promise<Record<string, unknown>> {
     try {
@@ -322,6 +397,21 @@ export default function AdminPage() {
     setCollapsedRuleGroups((current) => ({ ...current, [group]: !current[group] }));
   }
 
+  function setAllRuleGroupsCollapsed(collapsed: boolean) {
+    setCollapsedRuleGroups({
+      bullish: collapsed,
+      bearish: collapsed,
+      neutral: collapsed,
+    });
+  }
+
+  function resetRuleView() {
+    setRuleSearch("");
+    setRuleRiskFilter("all");
+    setSelectedRuleKeywords([]);
+    setAllRuleGroupsCollapsed(false);
+  }
+
   function selectRuleGroup(visibleRules: Rule[]) {
     const visibleKeywords = visibleRules.map((rule) => rule.keyword);
     setSelectedRuleKeywords((current) => Array.from(new Set([...current, ...visibleKeywords])));
@@ -341,6 +431,11 @@ export default function AdminPage() {
 
   async function deleteSelectedRules() {
     if (selectedRuleKeywords.length === 0) {
+      return;
+    }
+
+    const confirmed = window.confirm(`确定要删除已选的 ${selectedRuleKeywords.length} 条规则吗？此操作无法撤销。`);
+    if (!confirmed) {
       return;
     }
 
@@ -421,6 +516,7 @@ export default function AdminPage() {
     group,
     rules: filteredRules.filter((rule) => rule.direction === group),
   }));
+  const visibleGroupCount = groupedFilteredRules.length;
   const totalPresetSources = SOURCE_PRESETS.length;
   const lastRefreshLabel = formatRelativeTime(lastRefreshAt);
   const lastSyncLabel = formatRelativeTime(lastConfigSyncAt);
@@ -428,6 +524,7 @@ export default function AdminPage() {
     lastRefreshSummary?.newsCount !== undefined || lastRefreshSummary?.signalCount !== undefined
       ? `新闻 ${lastRefreshSummary.newsCount ?? 0} · 信号 ${lastRefreshSummary.signalCount ?? 0}`
       : "暂无刷新结果";
+  const selectedRuleRate = rules.length > 0 ? Math.round((selectedRuleKeywords.length / rules.length) * 100) : 0;
 
   function renderPresetSection(title: string, presets: SourcePreset[]) {
     return (
@@ -882,6 +979,9 @@ export default function AdminPage() {
               <div style={{ fontSize: 11, color: "#94a3b8" }}>
                 已选 {selectedRuleKeywords.length} · 当前筛选 {filteredRules.length}
               </div>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                视图分组 {visibleGroupCount} · 选中率 {selectedRuleRate}%
+              </div>
             </div>
           </div>
 
@@ -1005,6 +1105,90 @@ export default function AdminPage() {
                   已选择 {selectedRuleKeywords.length} 条规则，可继续勾选或直接批量删除。
                 </div>
               )}
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  padding: "10px 12px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: "rgba(255,255,255,0.9)",
+                }}
+              >
+                <div style={{ display: "grid", gap: 2 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>运营操作条</div>
+                  <div style={{ fontSize: 11, color: "#64748b" }}>
+                    当前风险筛选、搜索与批量选择都在这里统一收口。
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => setAllRuleGroupsCollapsed(true)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      backgroundColor: "#fff",
+                      color: "#0f172a",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    全部收起
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAllRuleGroupsCollapsed(false)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      backgroundColor: "#fff",
+                      color: "#0f172a",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    全部展开
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRuleKeywords([])}
+                    disabled={selectedRuleKeywords.length === 0}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      backgroundColor: selectedRuleKeywords.length === 0 ? "rgba(248,250,252,0.9)" : "#fff",
+                      color: selectedRuleKeywords.length === 0 ? "#94a3b8" : "#0f172a",
+                      fontWeight: 700,
+                      cursor: selectedRuleKeywords.length === 0 ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    清空选择
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetRuleView}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(15,23,42,0.08)",
+                      backgroundColor: "#0f172a",
+                      color: "#fff",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    重置视图
+                  </button>
+                </div>
+              </div>
 
               {groupedFilteredRules.length === 0 ? (
                 <div
