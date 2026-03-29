@@ -2366,9 +2366,9 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           display: isSourcesWorkspace ? "grid" : "none",
           minWidth: 0,
           border: "1px solid rgba(15,23,42,0.08)",
-            borderRadius: 24,
-            background: "rgba(255,255,255,0.82)",
-            boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+          borderRadius: 24,
+          background: "rgba(255,255,255,0.82)",
+          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
           padding: 18,
           backdropFilter: "blur(16px)",
         }}
@@ -2386,6 +2386,17 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
             </div>
           }
         />
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+          {[
+            { label: "已启用", value: sources.length, meta: "全部来源" },
+            { label: "默认组", value: chinaEnabled.length + globalEnabled.length, meta: "推荐配置" },
+            { label: "自定义", value: customSources.length, meta: "手动添加" },
+            { label: "空源", value: sources.filter((source) => !filteredSources.includes(source)).length, meta: "当前视图外" },
+          ].map((item) => (
+            <StatCard key={item.label} label={item.label} value={item.value} meta={item.meta} tone="#0f172a" background="rgba(255,255,255,0.88)" />
+          ))}
+        </div>
 
         <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(300px, 0.88fr) minmax(0, 1.12fr)", gap: 14, alignItems: "start" }}>
           <div style={{ display: "grid", gap: 12, alignContent: "start", position: "sticky", top: 16, alignSelf: "start" }}>
@@ -2597,32 +2608,31 @@ export default function AdminPage({ initialWorkspace = "overview" }: { initialWo
           display: isRulesWorkspace ? "flex" : "none",
           minWidth: 0,
           border: "1px solid rgba(15,23,42,0.08)",
-            borderRadius: 24,
-            background: "rgba(255,255,255,0.82)",
-            boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
-            padding: 18,
-            backdropFilter: "blur(16px)",
-            flexDirection: "column",
-            minHeight: 0,
+          borderRadius: 24,
+          background: "rgba(255,255,255,0.82)",
+          boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+          padding: 18,
+          backdropFilter: "blur(16px)",
+          flexDirection: "column",
+          minHeight: 0,
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>信号规则</h2>
-              <div style={{ marginTop: 4, color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                规则会在刷新新闻后自动触发，左侧负责筛选和批量操作，右侧负责新增和更新。
+          <SectionHeader
+            eyebrow="信号规则"
+            title="规则流与批量控制"
+            description="规则在刷新新闻后触发，左侧负责筛选和批量操作，右侧负责新增和更新。"
+            action={
+              <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
+                <div style={{ fontSize: 12, color: "#64748b" }}>{rules.length} rules</div>
+                <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                  已选 {selectedRuleKeywords.length} · 当前筛选 {filteredRules.length}
+                </div>
+                <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                  视图分组 {visibleGroupCount} · 选中率 {selectedRuleRate}%
+                </div>
               </div>
-            </div>
-            <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
-              <div style={{ fontSize: 12, color: "#64748b" }}>{rules.length} rules</div>
-              <div style={{ fontSize: 11, color: "#94a3b8" }}>
-                已选 {selectedRuleKeywords.length} · 当前筛选 {filteredRules.length}
-              </div>
-              <div style={{ fontSize: 11, color: "#94a3b8" }}>
-                视图分组 {visibleGroupCount} · 选中率 {selectedRuleRate}%
-              </div>
-            </div>
-          </div>
+            }
+          />
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginTop: 14 }}>
             {[
