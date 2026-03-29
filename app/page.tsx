@@ -14,20 +14,33 @@ type SourcePreset = {
   label: string;
   url: string;
   group: "global" | "china";
+  section: "china-news" | "china-hot" | "global";
 };
 
 const SOURCE_PRESETS: SourcePreset[] = [
-  { group: "china", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
-  { group: "china", label: "人民网 - 时政", url: "http://www.people.com.cn/rss/politics.xml" },
-  { group: "china", label: "中国日报 - 中国新闻", url: "http://www.chinadaily.com.cn/rss/china_rss.xml" },
-  { group: "china", label: "36氪 - 最新快讯", url: "https://www.36kr.com/feed-newsflash" },
-  { group: "global", label: "CNBC - Top Stories", url: "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
-  { group: "global", label: "MarketWatch - Top Stories", url: "https://feeds.marketwatch.com/marketwatch/topstories/" },
+  { group: "china", section: "china-news", label: "中国新闻网 - 财经", url: "https://www.chinanews.com.cn/rss/finance.xml" },
+  { group: "china", section: "china-news", label: "人民网 - 时政", url: "http://www.people.com.cn/rss/politics.xml" },
+  { group: "china", section: "china-news", label: "中国日报 - 中国新闻", url: "http://www.chinadaily.com.cn/rss/china_rss.xml" },
+  { group: "china", section: "china-news", label: "央视新闻 - 国内", url: "https://rsshub.app/cctv/china" },
+  { group: "china", section: "china-hot", label: "今日头条 - 热榜", url: "https://rsshub.app/zyw/hot/toutiao" },
+  { group: "china", section: "china-hot", label: "微博 - 热搜榜", url: "https://rsshub.app/zyw/hot/weibo" },
+  { group: "china", section: "china-hot", label: "知乎 - 热榜", url: "https://rsshub.app/zhihu/hot" },
+  { group: "china", section: "china-hot", label: "抖音 - 热榜", url: "https://rsshub.app/zyw/hot/douyin" },
+  { group: "china", section: "china-hot", label: "36氪 - 最新快讯", url: "https://www.36kr.com/feed-newsflash" },
+  { group: "global", section: "global", label: "CNBC - Top Stories", url: "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
+  { group: "global", section: "global", label: "MarketWatch - Top Stories", url: "https://feeds.marketwatch.com/marketwatch/topstories/" },
+  { group: "global", section: "global", label: "Caixin Global - Latest", url: "https://rsshub.app/caixinglobal/latest" },
 ];
 
 const DEFAULT_SOURCE_GROUPS = {
   china: SOURCE_PRESETS.filter((preset) => preset.group === "china"),
   global: SOURCE_PRESETS.filter((preset) => preset.group === "global"),
+};
+
+const PRESET_SECTIONS = {
+  "china-news": SOURCE_PRESETS.filter((preset) => preset.section === "china-news"),
+  "china-hot": SOURCE_PRESETS.filter((preset) => preset.section === "china-hot"),
+  global: SOURCE_PRESETS.filter((preset) => preset.section === "global"),
 };
 
 function getSourceLabel(url: string) {
@@ -171,6 +184,59 @@ export default function AdminPage() {
 
     return `${getSourceLabel(source)} ${source}`.toLowerCase().includes(sourceSearchTerm);
   });
+
+  function renderPresetSection(title: string, presets: SourcePreset[]) {
+    return (
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>{title}</div>
+          <div style={{ fontSize: 11, color: "#64748b" }}>{presets.length} sources</div>
+        </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          {presets.map((preset) => {
+            const alreadyAdded = sources.includes(preset.url);
+            return (
+              <button
+                key={preset.url}
+                type="button"
+                disabled={alreadyAdded}
+                onClick={() => addPresetSourceByUrl(preset.url)}
+                style={{
+                  textAlign: "left",
+                  padding: "12px 14px",
+                  borderRadius: 16,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  backgroundColor: alreadyAdded ? "rgba(15,23,42,0.04)" : "#fff",
+                  color: alreadyAdded ? "#94a3b8" : "#0f172a",
+                  cursor: alreadyAdded ? "not-allowed" : "pointer",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{preset.label}</div>
+                    <div style={{ marginTop: 3, fontSize: 11, color: "#64748b", wordBreak: "break-all" }}>
+                      {preset.url}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: 999,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      backgroundColor: alreadyAdded ? "rgba(15,23,42,0.08)" : "rgba(15,23,42,0.06)",
+                    }}
+                  >
+                    {alreadyAdded ? "已启用" : "添加"}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100dvh", padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -431,97 +497,9 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>推荐中国来源</div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {DEFAULT_SOURCE_GROUPS.china.map((preset) => {
-                    const alreadyAdded = sources.includes(preset.url);
-                    return (
-                      <button
-                        key={preset.url}
-                        type="button"
-                        disabled={alreadyAdded}
-                        onClick={() => addPresetSourceByUrl(preset.url)}
-                        style={{
-                          textAlign: "left",
-                          padding: "12px 14px",
-                          borderRadius: 16,
-                          border: "1px solid rgba(15,23,42,0.08)",
-                          backgroundColor: alreadyAdded ? "rgba(15,23,42,0.04)" : "#fff",
-                          color: alreadyAdded ? "#94a3b8" : "#0f172a",
-                          cursor: alreadyAdded ? "not-allowed" : "pointer",
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                          <div>
-                            <div style={{ fontWeight: 700 }}>{preset.label}</div>
-                            <div style={{ marginTop: 3, fontSize: 11, color: "#64748b", wordBreak: "break-all" }}>
-                              {preset.url}
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              padding: "4px 8px",
-                              borderRadius: 999,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              backgroundColor: alreadyAdded ? "rgba(15,23,42,0.08)" : "rgba(15,23,42,0.06)",
-                            }}
-                          >
-                            {alreadyAdded ? "已启用" : "添加"}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>推荐国际来源</div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {DEFAULT_SOURCE_GROUPS.global.map((preset) => {
-                    const alreadyAdded = sources.includes(preset.url);
-                    return (
-                      <button
-                        key={preset.url}
-                        type="button"
-                        disabled={alreadyAdded}
-                        onClick={() => addPresetSourceByUrl(preset.url)}
-                        style={{
-                          textAlign: "left",
-                          padding: "12px 14px",
-                          borderRadius: 16,
-                          border: "1px solid rgba(15,23,42,0.08)",
-                          backgroundColor: alreadyAdded ? "rgba(15,23,42,0.04)" : "#fff",
-                          color: alreadyAdded ? "#94a3b8" : "#0f172a",
-                          cursor: alreadyAdded ? "not-allowed" : "pointer",
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                          <div>
-                            <div style={{ fontWeight: 700 }}>{preset.label}</div>
-                            <div style={{ marginTop: 3, fontSize: 11, color: "#64748b", wordBreak: "break-all" }}>
-                              {preset.url}
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              padding: "4px 8px",
-                              borderRadius: 999,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              backgroundColor: alreadyAdded ? "rgba(15,23,42,0.08)" : "rgba(15,23,42,0.06)",
-                            }}
-                          >
-                            {alreadyAdded ? "已启用" : "添加"}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {renderPresetSection("推荐中国新闻", PRESET_SECTIONS["china-news"])}
+              {renderPresetSection("推荐中国热榜", PRESET_SECTIONS["china-hot"])}
+              {renderPresetSection("推荐国际来源", PRESET_SECTIONS.global)}
             </div>
           </div>
         </section>
